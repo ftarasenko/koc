@@ -74,8 +74,19 @@ exits 0; check each line's output or the audit log.
 | `KOC_HISTORY_FILE` | persist history here; without it history is in memory only |
 | `KOC_AUDIT_FD` | write audit events to this inherited file descriptor (3 or above) |
 | `KOC_AUDIT_FILE` | … or append them to this file; relative paths resolve inside `KOC_HOME` |
+| `KOC_PROXY_SOCKET` | unix socket of a forward proxy; every OpenStack API request goes out as a `CONNECT` through it (below) |
 
 Without any of them koc behaves exactly as before.
+
+### `KOC_PROXY_SOCKET`
+
+A host that runs koc in a sandbox with no network can hand it one unix socket
+that leads to an allow-list forward proxy. With the variable set, koc dials that
+socket for every OpenStack-facing request and asks the proxy to `CONNECT` to the
+endpoint. `HTTPS_PROXY` and `NO_PROXY` are ignored and koc never dials a host
+directly, so a request the proxy denies fails and nothing bypasses it. The
+endpoints must be `https://`: a plain `http://` request is not a `CONNECT` and a
+CONNECT-only proxy refuses it. Vault, Kubernetes and S3 clients are not affected.
 
 ### `KOC_HOME`
 

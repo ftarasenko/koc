@@ -55,6 +55,7 @@ func newHTTPTransport(tlsCfg *tls.Config) *http.Transport {
 	tr := http.DefaultTransport.(*http.Transport).Clone() //nolint:forcetypeassert // documented type of http.DefaultTransport
 	tr.TLSClientConfig = tlsCfg
 	tr.ResponseHeaderTimeout = responseHeaderTimeout
+	applyProxySocket(tr)
 	return tr
 }
 

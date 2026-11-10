@@ -15,9 +15,10 @@ import (
 // A sandbox with no network uses it to reach only the endpoints its host allows.
 const EnvProxySocket = "KOC_PROXY_SOCKET"
 
-// proxyPlaceholder is the proxy URL handed to net/http. Its host is never
-// resolved: the dial hook below sends the connection to the socket instead.
-const proxyPlaceholder = "http://koc-proxy-socket.invalid"
+// proxyHost names the proxy for net/http. It is never resolved: the dial hook
+// below sends the connection to the socket. The scheme is "http" because the
+// CONNECT goes over the local socket in clear; the tunnelled request stays TLS.
+const proxyHost = "koc-proxy-socket.invalid"
 
 // dialTimeout bounds one connect to the proxy socket.
 const dialTimeout = 10 * time.Second
@@ -30,8 +31,7 @@ func applyProxySocket(tr *http.Transport) {
 	if sock == "" {
 		return
 	}
-	proxyURL, _ := url.Parse(proxyPlaceholder)
-	tr.Proxy = http.ProxyURL(proxyURL)
+	tr.Proxy = http.ProxyURL(&url.URL{Scheme: "http", Host: proxyHost})
 	dialer := &net.Dialer{Timeout: dialTimeout}
 	tr.DialContext = func(ctx context.Context, _, _ string) (net.Conn, error) {
 		return dialer.DialContext(ctx, "unix", sock)

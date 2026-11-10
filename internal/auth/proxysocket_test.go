@@ -112,12 +112,12 @@ func TestApplyProxySocket_UnsetKeepsEnvProxy(t *testing.T) {
 	}
 }
 
-func TestApplyProxySocket_PlaceholderParses(t *testing.T) {
+func TestApplyProxySocket_PlaceholderHost(t *testing.T) {
 	t.Setenv(EnvProxySocket, "/nonexistent.sock")
 	tr := newHTTPTransport(nil)
 	req, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, "https://example.test/", http.NoBody)
 	u, err := tr.Proxy(req)
-	if err != nil || u == nil || u.Host != strings.TrimPrefix(proxyPlaceholder, "http://") {
+	if err != nil || u == nil || u.Host != proxyHost {
 		t.Fatalf("Proxy = %v, %v", u, err)
 	}
 }

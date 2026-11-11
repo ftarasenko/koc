@@ -147,6 +147,12 @@ done
 if grep -Eq 'check-latest:[[:space:]]*true|~>' "$DRY"; then failed=$((failed+1)); echo "FAIL release-dryrun.yml floats a tool"
 else pass=$((pass+1)); echo "ok   release-dryrun.yml floats no tool"; fi
 
+# The tag being rehearsed may predate the helper scripts: run them from the
+# workflow's own ref (.dryrun-tools), never from the tag checkout (package job).
+if sed -n '/^  package:/,$p' "$DRY" | grep -Eq '^[[:space:]]*(- )?run: +(\./)?(scripts|test)/'; then
+  failed=$((failed+1)); echo "FAIL release-dryrun.yml runs a helper script from the build tree"
+else pass=$((pass+1)); echo "ok   release-dryrun.yml runs no helper script from the tag checkout"; fi
+
 # One signing identity everywhere: the docs must name this very workflow file.
 for doc in README.md SECURITY.md; do
   if grep -Fq '.github/workflows/release.yml@refs/tags/' "$ROOT/$doc"; then

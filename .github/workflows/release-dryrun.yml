@@ -10,12 +10,13 @@ name: release-dryrun
 #    that is not annotated, on a commit that is not on the mainline and on red or
 #    missing CI on that SHA. With no `tag`, it gates the commit the run was started
 #    on, so a dispatch from a feature branch must stop.
-# 2. package: pinned Go, cosign, syft and GoReleaser, `release --snapshot`
-#    with publish and signing skipped: the six binaries, archives, packages, the
+# 2. selftest: the gate script's tests, from this workflow's own ref.
+# 3. package: the tag's source (not this ref's), built with pinned Go, cosign,
+#    syft and GoReleaser, `release --snapshot` with publish and signing skipped: the six binaries, archives, packages, the
 #    SBOM bundle and the checksums are built, nothing is uploaded.
 #
-# A pull request that touches the release files runs the package job alone
-# (a pull request has no tag to gate), so a broken pin or config fails before
+# A pull request that touches the release files runs selftest and package, not
+# gate (a pull request has no tag to gate), so a broken pin or config fails before
 # the tag is burned.
 on:
   workflow_dispatch:
@@ -68,10 +69,22 @@ jobs:
         run: |
           if [ -n "$TAG" ]; then scripts/release-gate.sh "$TAG"; else scripts/release-gate.sh --sha "$SHA"; fi
 
+  # The gate scripts and their tests come from the ref this workflow runs on, never
+  # from the tag being rehearsed: an older tag predates them.
+  selftest:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Release gate script tests
+        run: test/release/gate_test.sh
+
   package:
-    needs: gate
+    needs: [gate, selftest]
     # Run after the gate passed, or alone on a pull request (where gate is skipped).
-    if: ${{ !cancelled() && (needs.gate.result == 'success' || needs.gate.result == 'skipped') }}
+    if: ${{ !cancelled() && needs.selftest.result == 'success' && (needs.gate.result == 'success' || needs.gate.result == 'skipped') }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -81,15 +94,23 @@ jobs:
           fetch-depth: 0
           ref: ${{ inputs.tag != '' && format('refs/tags/{0}', inputs.tag) || '' }}
 
+      # The rehearsed tag is what gets built; the helper scripts come from this
+      # workflow's own ref, in a directory git ignores so the tree stays clean.
+      - name: Fetch release helper scripts from the workflow ref
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: .dryrun-tools
+          persist-credentials: false
+
+      - name: Keep helper scripts out of the build tree
+        run: echo "/.dryrun-tools/" >> .git/info/exclude
+
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: ${{ env.GO_VERSION }}
           check-latest: false
           cache: false
-
-      - name: Release gate script tests
-        run: test/release/gate_test.sh
 
       - name: Generate shell completions
         run: make completions
@@ -107,7 +128,7 @@ jobs:
       - name: Build inputs
         env:
           TAG: ${{ inputs.tag || 'v0.0.0-dryrun' }}
-        run: scripts/release-inputs.sh "$TAG" | tee -a "$GITHUB_STEP_SUMMARY"
+        run: .dryrun-tools/scripts/release-inputs.sh "$TAG" | tee -a "$GITHUB_STEP_SUMMARY"
 
       # --snapshot: no tag required, nothing published. The cask block reads a
       # token from the environment only to render; it is never used here.

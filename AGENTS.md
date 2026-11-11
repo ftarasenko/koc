@@ -761,7 +761,9 @@ being quietly weakened by a check that happens to need a proxy.
   no secrets, any branch or fork: dispatch with `tag=vX.Y.Z` to gate a tag you are
   about to push (or with no tag to gate the commit it runs on), then build the
   artifacts with the pinned tools via `goreleaser release --snapshot
-  --skip=publish,sign`. A PR touching the release files runs the build half.
+  --skip=publish,sign`. The tag's source is what gets built, but the gate script, its
+  tests and `release-inputs.sh` run from the workflow's own ref (a tag older than
+  the scripts has none). A PR touching the release files runs the build half.
 - `.github/workflows/delete-release.yml` — dispatch to delete a release, then its
   tag, in two separate steps. It runs in the `release-admin` environment, which
   **does** require a reviewer: it is the only workflow that destroys published

@@ -128,8 +128,33 @@ func opRow(o Operation) []any {
 // Every column the set verbs can render, checked against -c before the PUT:
 // once KeyVRM has it, an error reads as a failed write and a retry repeats it.
 var (
-	appConfigColumns      = columnsOf(appConfigView(&AppConfig{}))
-	haConfigDetailColumns = columnsOf(haConfigView(&HostAggregateConfig{}))
+	appConfigColumns           = columnsOf(appConfigView(&AppConfig{}))
+	haConfigDetailColumns      = columnsOf(haConfigView(&HostAggregateConfig{}))
+	interfaceMonitoringColumns = columnsOf(interfaceMonitoringView(&InterfaceMonitoring{}))
 )
 
 func columnsOf(fields []string, _ []any) []string { return fields }
+
+var monitoringOverviewColumns = []string{
+	"enabled", "zones", "aggregates", "processes", "problem_aggregates", "noop_aggregates",
+}
+
+func monitoringOverviewView(m *MonitoringOverview) ([]string, []any) {
+	return monitoringOverviewColumns, []any{
+		m.Enabled, m.Zones, m.Aggregates, m.Processes, m.ProblemAggregates, m.NoopAggregates,
+	}
+}
+
+func interfaceMonitoringView(m *InterfaceMonitoring) ([]string, []any) {
+	fields := []string{
+		"bond_enabled", "bond_degraded_reaction", "bond_down_reaction", "bond_interfaces",
+		"hba_enabled", "hba_down_reaction", "hba_all_down_reaction", "hba_interfaces",
+	}
+	values := []any{
+		derefBool(m.Bond.DefaultPolicy.Enabled), m.Bond.DefaultPolicy.DegradedReaction,
+		m.Bond.DefaultPolicy.DownReaction, m.Bond.Interfaces,
+		derefBool(m.HBA.DefaultPolicy.Enabled), m.HBA.DefaultPolicy.DownReaction,
+		m.HBA.AllDownReaction, m.HBA.Interfaces,
+	}
+	return fields, values
+}

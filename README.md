@@ -40,7 +40,8 @@ deployment. No Python at runtime.
 >   secrets and containers (python-barbicanclient's surface, less the CA API
 >   barbican removed before Zed)
 > - **keyvrm** (Keystack Virtual Resource Manager — in-house) — app-config,
->   host-aggregate-config, availability-zone, event, recommendation
+>   host-aggregate-config (incl. the bond/HBA interface-monitoring policy),
+>   availability-zone, event, recommendation, monitoring overview
 >
 > In addition to the standard Keystone flow, credentials can be sourced from a
 > standalone Ironic in a Kubernetes namespace (`--creds-from-ns`) or an

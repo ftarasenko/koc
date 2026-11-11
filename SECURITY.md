@@ -75,22 +75,66 @@ checksums chain from it to each artifact.
 Verify the signature, then the artifact:
 
 ```sh
+V=v0.44.0   # the release you downloaded
 cosign verify-blob checksums.txt --bundle checksums.txt.bundle \
-  --certificate-identity-regexp 'https://github.com/ftarasenko/koc/.*' \
+  --certificate-identity "https://github.com/ftarasenko/koc/.github/workflows/release.yml@refs/tags/$V" \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 
 sha256sum -c checksums.txt
 ```
 
 No key distribution is involved: the signing identity is the release workflow
-itself, asserted by the certificate. The `--certificate-identity-regexp` and
+itself, asserted by the certificate. The `--certificate-identity` and
 `--certificate-oidc-issuer` flags are the check that matters — without them you
 have verified only that *somebody* signed the file.
 
 The repository was `ftarasenko/go-openstackclient` until v0.42.0, and the
 certificates of those releases name it. For v0.42.0 and older, put
-`go-openstackclient` in place of `koc` in the identity regexp and in
+`go-openstackclient` in place of `koc` in the identity and in
 `gh attestation verify --repo`.
+
+#### Signing identity
+
+The certificate that signed `checksums.txt` is issued to one workflow run, and
+the identity to accept is this exact pair:
+
+| Field | Value |
+| --- | --- |
+| Certificate identity (SAN) | `https://github.com/ftarasenko/koc/.github/workflows/release.yml@refs/tags/<version>`, for example `.../release.yml@refs/tags/v0.44.0` |
+| OIDC issuer | `https://token.actions.githubusercontent.com` |
+
+The identity is matched exactly, with `--certificate-identity`, not by a
+pattern: it fixes the repository, the workflow file and the release's own tag. A
+signature produced by another workflow in this repository (`ci.yml`, a fork's
+workflow), by a branch ref or by another release's tag does not verify. To check
+every release with one command, an anchored pattern is acceptable:
+
+```sh
+cosign verify-blob checksums.txt --bundle checksums.txt.bundle \
+  --certificate-identity-regexp '^https://github\.com/ftarasenko/koc/\.github/workflows/release\.yml@refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+```
+
+Both forms were checked against the v0.44.0 bundle (accepted); the exact form
+with `ci.yml` in place of `release.yml`, or with another tag, was rejected. If `release.yml` is ever renamed or moved, this identity changes with
+it: update this section and the README command in the same commit
+(`test/release/gate_test.sh` fails otherwise).
+
+#### What a release is built from
+
+A release is cut only from an annotated `v*` tag whose commit is on `master` and
+whose required CI check-runs (build-test, test-race, lint, the six crossbuilds
+and the vendor re-derivation) all succeeded on that exact SHA;
+`scripts/release-gate.sh` enforces this in the `gate` job before the job that holds
+signing and publishing rights starts. The same gate runs without publishing from
+`release-dryrun.yml`, which also builds the artifacts with the pinned tools.
+Go, GoReleaser, cosign and syft are pinned to exact versions in `release.yml`,
+and each release's notes end with a "Build inputs" table: commit, tool versions
+pinned and observed, runner image, and the hashes of `go.sum` and
+`vendor/modules.txt`. The gate guards against a mistaken tag; it is not a boundary
+against someone who can both push a tag and edit the workflow. That boundary is
+the `release` environment (its PAT is reachable only from `v*` tags) and the tag
+ruleset.
 
 `checksums.txt.bundle` is a Sigstore bundle carrying the signature, the signing
 certificate and the transparency-log inclusion proof together, so it is the only
@@ -143,7 +187,7 @@ cosign trusted-root create --with-default-services --out trusted_root.json
 # Inside the enclave — no Rekor call, no TUF fetch:
 cosign verify-blob checksums.txt --bundle checksums.txt.bundle \
   --trusted-root trusted_root.json \
-  --certificate-identity-regexp 'https://github.com/ftarasenko/koc/.*' \
+  --certificate-identity "https://github.com/ftarasenko/koc/.github/workflows/release.yml@refs/tags/$V" \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 ```
 

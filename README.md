@@ -94,18 +94,25 @@ completions), an **SPDX SBOM bundle** (`koc_<ver>_sboms.tar.gz`, one
 can be re-derived independently from the tag.
 
 ```sh
+V=v0.44.0   # the release you downloaded
 cosign verify-blob checksums.txt --bundle checksums.txt.bundle \
-  --certificate-identity-regexp 'https://github.com/ftarasenko/koc/.*' \
+  --certificate-identity "https://github.com/ftarasenko/koc/.github/workflows/release.yml@refs/tags/$V" \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 sha256sum -c checksums.txt
 
 # What built it: repo, workflow, commit, runner.
-gh attestation verify koc_<version>_linux_amd64.tar.gz \
+gh attestation verify koc_${V#v}_linux_amd64.tar.gz \
   --repo ftarasenko/koc
 ```
 
+The identity is exact: it names this repository's `release.yml` workflow at the
+release's own tag, so a signature from any other workflow, branch or tag fails.
+Do not loosen it to a regexp over the whole repository. The release notes of
+every release list the exact Go, GoReleaser, cosign and syft versions the build
+used; SECURITY.md has the identity, its issuer and the release gate.
+
 For v0.42.0 and older, released as `ftarasenko/go-openstackclient`, use that
-name in the regexp and in `--repo`. The two identity flags are the part that matters — without them you have checked
+name in the identity and in `--repo`. The two identity flags are the part that matters — without them you have checked
 only that *somebody* signed the file. Verify the signature first, then let
 `sha256sum -c` carry that trust to each artifact.
 

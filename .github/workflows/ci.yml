@@ -91,6 +91,11 @@ jobs:
       - name: Functional tests (no cloud)
         run: go test -tags functional -count=1 ./test/functional/...
 
+      # The release gate script against a stubbed `gh api`, and the guards that
+      # keep the release workflow's tools pinned. Offline: bash, jq, grep.
+      - name: Release gate tests
+        run: test/release/gate_test.sh
+
   # The release ships six targets; CI used to compile one. A build-tag or
   # syscall mistake in a darwin/windows path was therefore first discovered at
   # release time. Build-only (no test binaries can run cross-platform), and

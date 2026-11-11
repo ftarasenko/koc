@@ -17,26 +17,64 @@ name: release
 # PAT), immutability needs no scripted pre-check because `git push` of an
 # existing tag fails on its own, and an agent cannot cut a release unilaterally
 # since pushing a tag ref is blocked outside a maintainer's workstation.
+#
+# A tag alone does not publish: the `gate` job first requires the tag to be
+# annotated, its commit to be on the mainline and every required CI check-run on
+# that exact SHA to have succeeded (scripts/release-gate.sh). The same script
+# and the same pinned tools run, without publishing, from release-dryrun.yml.
 on:
   push:
     tags:
       - "v*"
 
-permissions:
-  contents: write # create the GitHub Release in this repo
-  id-token: write # OIDC token for keyless cosign signing and provenance
-  attestations: write # store the build-provenance attestation on the release
+# Per-job grants below; nothing is granted workflow-wide.
+permissions: {}
 
-# Air-gap requirement: the compiled artifact builds offline from the committed
-# vendor/. GoReleaser itself is fetched by the action (CI is not air-gapped).
+# Every tool that shapes the artifacts is pinned to an exact version, so the
+# same tag rebuilt later selects the same compiler, packager, signer and
+# scanner. Bump them together in one reviewed change, and keep release-dryrun.yml
+# in step (its copy of these values is checked by test/release/gate_test.sh).
+# The build inputs are written into the release notes (scripts/release-inputs.sh).
 env:
+  GO_VERSION: "1.27.4"
+  GORELEASER_VERSION: "v2.20.1"
+  COSIGN_VERSION: "v3.1.4"
+  SYFT_VERSION: "v1.54.0"
+  # Air-gap requirement: the compiled artifact builds offline from the committed
+  # vendor/. GoReleaser itself is fetched by the action (CI is not air-gapped).
   GOFLAGS: -mod=vendor
   GOPROXY: "off"
   CGO_ENABLED: "0"
 
 jobs:
-  release:
+  # Holds no secret and no write grant: it only reads the GitHub API.
+  gate:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # The ancestry and check-run reads use the API, so the gate needs no
+      # history. Waits up to 15 minutes for checks still running on the SHA
+      # (a tag pushed right after the merge), and stops on any failed check.
+      - name: Release gate (mainline commit, green CI on the tag SHA)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          GATE_EXPECT_SHA: ${{ github.sha }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          RELEASE_BRANCH: ${{ github.event.repository.default_branch }}
+        run: scripts/release-gate.sh "$TAG"
+
+  release:
+    needs: gate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the GitHub Release in this repo
+      id-token: write # OIDC token for keyless cosign signing and provenance
+      attestations: write # store the build-provenance attestation on the release
     # The `release` environment exists to SCOPE the cross-repo Homebrew PAT, not
     # to gate the release: it has no required reviewers, so tagging still
     # publishes with no extra approval step.
@@ -55,19 +93,19 @@ jobs:
         with:
           fetch-depth: 0 # full history + tags for git describe / release notes
 
-      # Explicit 1.27.x + check-latest instead of `go-version-file: go.mod`:
-      # go.mod pins a full patch, so setup-go would resolve it exactly and every
-      # released binary would carry that original .0 standard library rather than
-      # the newest patch's — the trap that once shipped go1.25.0's crypto/x509
-      # name-constraint verification (GO-2025-4175), crypto/tls, encoding/pem
-      # (GO-2025-4009) and net/http HTTP/2 bugs. The floor in go.mod stays lower
-      # (1.26.0, what golang.org/x/crypto v0.56.0 forces) so contributors need
-      # the smallest possible toolchain; keep this pin in step with ci.yml's.
+      # Exact version, no check-latest: the release compiler is the one named in
+      # GO_VERSION above, and it is written into the release notes. go.mod keeps
+      # a lower floor (1.26.0, what golang.org/x/crypto v0.56.0 forces) so
+      # contributors need the smallest possible toolchain; `go-version-file:
+      # go.mod` would resolve that .0 floor and ship its standard library (the
+      # trap behind GO-2025-4175 / GO-2025-4009), so the newest secure patch is
+      # chosen deliberately, when the pin is bumped, instead of at release time.
+      # ci.yml still tracks 1.27.x, so a new patch is exercised there first.
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: "1.27.x"
-          check-latest: true
+          go-version: ${{ env.GO_VERSION }}
+          check-latest: false
           cache: false
 
       - name: Report Go toolchain version
@@ -92,21 +130,31 @@ jobs:
 
       # cosign and syft are required by the `signs:` and `sboms:` blocks in
       # .goreleaser.yaml. Both are official installers from the projects
-      # themselves, pinned to full commit SHAs per repo convention.
+      # themselves, pinned to full commit SHAs per repo convention, and both
+      # install the exact release named above rather than the installer's default.
       #
-      # cosign-installer v4 installs cosign v3 by default, and v3 turns the
-      # standardized Sigstore bundle on by default — which is why the `signs:`
-      # block writes checksums.txt.bundle rather than a detached .sig/.pem pair.
-      # The version is deliberately NOT pinned via `cosign-release`: the two
-      # move together, and letting the installer choose keeps the tool current
-      # with Dependabot's reviewable bumps. If that default ever has to be
-      # pinned, the floor is v3 — the v2 flags this repo used before are ignored
-      # under the new bundle format (see the note in .goreleaser.yaml).
+      # cosign v3 turns the standardized Sigstore bundle on by default — which is
+      # why the `signs:` block writes checksums.txt.bundle rather than a detached
+      # .sig/.pem pair. The floor is v3: the v2 flags this repo used before are
+      # ignored under the new bundle format (see the note in .goreleaser.yaml).
       - name: Install cosign
         uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
+        with:
+          cosign-release: ${{ env.COSIGN_VERSION }}
 
       - name: Install syft
         uses: anchore/sbom-action/download-syft@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        with:
+          syft-version: ${{ env.SYFT_VERSION }}
+
+      # What this build was made from, for the release notes. Written outside the
+      # work tree (GoReleaser refuses a dirty tree) and appended to the notes.
+      - name: Record build inputs
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          scripts/release-inputs.sh "$TAG" | tee "$RUNNER_TEMP/BUILD_INPUTS.md"
+          cat "$RUNNER_TEMP/BUILD_INPUTS.md" >> "$GITHUB_STEP_SUMMARY"
 
       # Builds the 6-target matrix + the .rpm/.deb, emits the SPDX SBOM bundle
       # and a keyless cosign signature over checksums.txt, publishes the GitHub
@@ -115,7 +163,7 @@ jobs:
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@a4f02ab5355a589de60d917a659ce617ed19b3de # v7.3.0
         with:
-          version: "~> v2"
+          version: ${{ env.GORELEASER_VERSION }}
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -149,4 +197,6 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ github.ref_name }}
-        run: gh release edit "$TAG" --notes-file "$RUNNER_TEMP/RELEASE_NOTES.md"
+        run: |
+          cat "$RUNNER_TEMP/RELEASE_NOTES.md" "$RUNNER_TEMP/BUILD_INPUTS.md" > "$RUNNER_TEMP/NOTES_WITH_INPUTS.md"
+          gh release edit "$TAG" --notes-file "$RUNNER_TEMP/NOTES_WITH_INPUTS.md"

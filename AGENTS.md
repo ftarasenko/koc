@@ -721,7 +721,17 @@ being quietly weakened by a check that happens to need a proxy.
   re-runs `go mod vendor` in its gomod PRs; `vendor-integrity` is the check that a
   PR which forgot to did not land.
 - `.github/workflows/release.yml` — drives **GoReleaser** (`.goreleaser.yaml`),
-  triggered **only** by pushing a `v*` tag. There is deliberately no
+  triggered **only** by pushing a `v*` tag. A `gate` job runs first
+  (`scripts/release-gate.sh`, read-only API, no secrets): the tag must be
+  annotated, its commit on `master`, and every required check-run (build-test,
+  test-race, lint, the six crossbuilds, the vendor re-derivation) green on that
+  SHA, else the `release` job never starts. Go, GoReleaser, cosign and syft are
+  pinned to exact versions in the workflow's `env:` (no `check-latest`, no `~>`);
+  bump them together, and the same values in `release-dryrun.yml`.
+  `scripts/release-inputs.sh` appends a "Build inputs" table (commit, pinned and
+  observed tool versions, runner image, `go.sum` / `vendor/modules.txt` hashes) to
+  the release notes. `test/release/gate_test.sh` (run by `ci.yml`) tests the gate
+  against a stub and fails on a floating pin. There is deliberately no
   `workflow_dispatch`: a dispatch run's ref is the branch it started from, never
   the tag it would create, so it cannot satisfy the `release` environment's
   `v*`-tag deployment rule and is rejected before any step runs. Creating the tag
@@ -747,6 +757,11 @@ being quietly weakened by a check that happens to need a proxy.
   release body is **not** GoReleaser's changelog (disabled) — after publish the
   workflow sets it with `gh release edit --notes-file` from
   `scripts/release-notes.sh` (GoReleaser v2 ignores `--release-notes`; see below).
+- `.github/workflows/release-dryrun.yml` — the release path without publishing,
+  no secrets, any branch or fork: dispatch with `tag=vX.Y.Z` to gate a tag you are
+  about to push (or with no tag to gate the commit it runs on), then build the
+  artifacts with the pinned tools via `goreleaser release --snapshot
+  --skip=publish,sign`. A PR touching the release files runs the build half.
 - `.github/workflows/delete-release.yml` — dispatch to delete a release, then its
   tag, in two separate steps. It runs in the `release-admin` environment, which
   **does** require a reviewer: it is the only workflow that destroys published
@@ -889,17 +904,22 @@ correct if only one is present.
    CHANGE`/`!` → MAJOR, `feat` → MINOR, `fix`/`perf` → PATCH. While the project is
    `0.y.z` there is no stable API, so a breaking change bumps MINOR and any `feat`
    bumps MINOR; a docs/ci/chore-only range is a PATCH.
-3. **Preview the notes** locally: `scripts/release-notes.sh vX.Y.Z`. If a bullet
+3. **Dry-run first.** Before tagging, `gh workflow run release-dryrun.yml --ref master`
+   (no `tag`) gates the tip of `master` and builds with the pinned tools; with
+   `-f tag=vX.Y.Z` it gates an existing tag (a fork rehearsal). Green means the gate
+   and the pinned build both pass; red CI or a non-mainline commit stops here, not
+   after the tag is burned.
+4. **Preview the notes** locally: `scripts/release-notes.sh vX.Y.Z`. If a bullet
    reads badly, fix it by rewording the offending commit (e.g. `git commit
    --amend` before it is tagged), not by hand-editing the release afterwards.
-4. **Push the tag** from a maintainer's workstation — that push *is* the trigger:
+5. **Push the tag** from a maintainer's workstation — that push *is* the trigger:
    ```sh
    git tag -a vX.Y.Z -m vX.Y.Z && git push origin vX.Y.Z
    ```
-   The workflow then builds the six binaries, signs and attests them, generates
-   the notes and publishes. Note that an agent sandbox cannot do this (pushing a
+   The workflow then gates the tag (mainline commit, green CI on its SHA), builds the
+   six binaries, signs and attests them, generates the notes and publishes. Note that an agent sandbox cannot do this (pushing a
    tag ref returns 403), which is intentional — a release is a human act.
-5. **Versions are immutable.** A published tag is never moved or re-released —
+6. **Versions are immutable.** A published tag is never moved or re-released —
    pushing a tag that already exists fails at the git level, and there is no
    `mode: replace`. Once `vX.Y.Z` is out, the next change ships as a new version;
    re-cutting the same number would swap the bytes under a name consumers (e.g.

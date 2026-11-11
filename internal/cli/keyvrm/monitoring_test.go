@@ -78,6 +78,31 @@ func TestRunInterfaceMonitoringShow_Output(t *testing.T) {
 	}
 }
 
+// YAML keeps the API's field names and shows an empty override as {}.
+func TestRunInterfaceMonitoringShow_YAMLKeepsAPINames(t *testing.T) {
+	fakeServer := th.SetupHTTP()
+	defer fakeServer.Teardown()
+	fakeServer.Mux.HandleFunc(imPath, func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, interfaceMonitoringBody)
+	})
+
+	var buf bytes.Buffer
+	o := &output.Options{Format: output.FormatYAML}
+	if err := runInterfaceMonitoringShow(context.Background(), keyvrmTestClient(fakeServer), o, "ha-1", &buf); err != nil {
+		t.Fatalf("runInterfaceMonitoringShow: %v", err)
+	}
+	out := buf.String()
+	for _, want := range []string{"down_reaction: disable_hypervisor", "hba0: {}"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("YAML lacks %q:\n%s", want, out)
+		}
+	}
+	if strings.Contains(out, "downreaction") || strings.Contains(out, "null") {
+		t.Errorf("YAML has Go field names or nulls:\n%s", out)
+	}
+}
+
 // serveInterfaceMonitoring serves the fixture on GET and records the PUT body.
 func serveInterfaceMonitoring(t *testing.T, s th.FakeServer, puts *[]map[string]any) {
 	t.Helper()

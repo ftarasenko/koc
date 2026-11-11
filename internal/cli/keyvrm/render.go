@@ -1,5 +1,7 @@
 package keyvrm
 
+import "encoding/json"
+
 // deref* helpers render nullable KeyVRM fields as display values ("" for nil).
 
 func derefStr(p *string) any {
@@ -152,9 +154,23 @@ func interfaceMonitoringView(m *InterfaceMonitoring) ([]string, []any) {
 	}
 	values := []any{
 		derefBool(m.Bond.DefaultPolicy.Enabled), m.Bond.DefaultPolicy.DegradedReaction,
-		m.Bond.DefaultPolicy.DownReaction, m.Bond.Interfaces,
+		m.Bond.DefaultPolicy.DownReaction, plainJSON(m.Bond.Interfaces),
 		derefBool(m.HBA.DefaultPolicy.Enabled), m.HBA.DefaultPolicy.DownReaction,
-		m.HBA.AllDownReaction, m.HBA.Interfaces,
+		m.HBA.AllDownReaction, plainJSON(m.HBA.Interfaces),
 	}
 	return fields, values
+}
+
+// plainJSON turns a struct value into its JSON-shaped maps, so YAML output
+// keeps the API's field names and leaves unset fields out.
+func plainJSON(v any) any {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return v
+	}
+	var out any
+	if json.Unmarshal(b, &out) != nil {
+		return v
+	}
+	return out
 }

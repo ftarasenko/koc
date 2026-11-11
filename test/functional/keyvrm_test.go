@@ -6,8 +6,8 @@ import (
 	"testing"
 )
 
-// The KeyVRM suite (up.sh's "keyvrm" feature): the monitoring overview and the
-// interface-monitoring policy of a host aggregate, edited and put back.
+// The KeyVRM suite, for a devstack stacked with a "keyvrm" feature: the
+// monitoring overview and the interface-monitoring policy, edited and put back.
 
 func TestKeyVRMMonitoring(t *testing.T) {
 	c := ft(t)

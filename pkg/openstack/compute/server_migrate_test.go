@@ -314,3 +314,53 @@ func TestActionBodies(t *testing.T) {
 		t.Errorf("latest evacuate body = %s", got)
 	}
 }
+
+func TestMigrateCalls_RequestID(t *testing.T) {
+	ctx := context.Background()
+	cases := []struct {
+		name, header, value string
+		call                func(*gophercloud.ServiceClient) (string, error)
+		body                string
+	}{
+		{"live", "X-Openstack-Request-Id", "req-live", func(sc *gophercloud.ServiceClient) (string, error) {
+			return compute.LiveMigrateServerRequestID(ctx, sc, serverID, compute.LiveMigrateOpts{Host: "cmp-02"})
+		}, `{"os-migrateLive":{"block_migration":"auto","host":"cmp-02"}}`},
+		{"evacuate", "X-Openstack-Request-Id", "req-evac", func(sc *gophercloud.ServiceClient) (string, error) {
+			return compute.EvacuateServerRequestID(ctx, sc, serverID, compute.EvacuateOpts{Host: "cmp-02", PreserveEphemeral: true})
+		}, `{"evacuate":{"host":"cmp-02","preserve_ephemeral":true}}`},
+		{"compute header only", "X-Compute-Request-Id", "req-compute", func(sc *gophercloud.ServiceClient) (string, error) {
+			return compute.EvacuateServerRequestID(ctx, sc, serverID, compute.EvacuateOpts{})
+		}, `{"evacuate":{}}`},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			fs, sc := nova(t, "2.87")
+			var rec calls
+			handle := rec.handler(func(_ *http.Request, _ string) (int, string) { return http.StatusAccepted, "" })
+			fs.Mux.HandleFunc("/servers/"+serverID+"/action", func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set(tc.header, tc.value)
+				handle(w, r)
+			})
+			got, err := tc.call(sc)
+			if err != nil || got != tc.value {
+				t.Fatalf("request ID = %q, %v; want %q", got, err, tc.value)
+			}
+			if sent := rec.only(t); sent.Version != "compute 2.87" || sent.Body != tc.body {
+				t.Errorf("sent %+v, want %s at 2.87", sent, tc.body)
+			}
+		})
+	}
+
+	fs, sc := nova(t, "2.87")
+	fs.Mux.HandleFunc("/servers/"+serverID+"/action", func(w http.ResponseWriter, _ *http.Request) {
+		answer(w, http.StatusConflict, `{"conflictingRequest":{"code":409,"message":"locked"}}`)
+	})
+	if id, err := compute.LiveMigrateServerRequestID(ctx, sc, serverID, compute.LiveMigrateOpts{}); id != "" ||
+		!gophercloud.ResponseCodeIs(err, http.StatusConflict) || !strings.HasPrefix(err.Error(), "live-migrating server "+serverID) {
+		t.Errorf("LiveMigrateServerRequestID = %q, %v", id, err)
+	}
+	if id, err := compute.EvacuateServerRequestID(ctx, sc, serverID, compute.EvacuateOpts{}); id != "" ||
+		!gophercloud.ResponseCodeIs(err, http.StatusConflict) || !strings.HasPrefix(err.Error(), "evacuating server "+serverID) {
+		t.Errorf("EvacuateServerRequestID = %q, %v", id, err)
+	}
+}

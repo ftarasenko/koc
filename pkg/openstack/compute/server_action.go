@@ -248,12 +248,26 @@ func floatingIPAction(ctx context.Context, c *gophercloud.ServiceClient, id stri
 
 // serverAction posts a raw server action at c's microversion.
 func serverAction(ctx context.Context, c *gophercloud.ServiceClient, id string, body map[string]any) error {
+	_, err := postServerAction(ctx, c, id, body)
+	return err
+}
+
+// postServerAction posts body to a server's action URL and returns nova's
+// request ID: x-openstack-request-id, else x-compute-request-id.
+func postServerAction(ctx context.Context, c *gophercloud.ServiceClient, id string, body map[string]any) (string, error) {
 	resp, err := c.Post(ctx, c.ServiceURL("servers", id, "action"), body, nil, &gophercloud.RequestOpts{OkCodes: []int{200, 202}})
 	if resp != nil {
 		defer func() { _ = resp.Body.Close() }()
 	}
 	_, _, err = gophercloud.ParseResponse(resp, err)
-	return err
+	if err != nil {
+		return "", err
+	}
+	reqID := resp.Header.Get("X-Openstack-Request-Id")
+	if reqID == "" {
+		reqID = resp.Header.Get("X-Compute-Request-Id")
+	}
+	return reqID, nil
 }
 
 // AddSecurityGroup adds a security group, by name or ID, to every port of a

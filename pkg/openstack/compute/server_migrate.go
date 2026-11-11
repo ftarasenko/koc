@@ -83,8 +83,16 @@ func LiveMigrateBody(c *gophercloud.ServiceClient, opts LiveMigrateOpts) map[str
 
 // LiveMigrateServer live-migrates a server; it keeps running throughout.
 func LiveMigrateServer(ctx context.Context, c *gophercloud.ServiceClient, id string, opts LiveMigrateOpts) error {
-	return wrap(serverAction(ctx, c, id, map[string]any{"os-migrateLive": LiveMigrateBody(c, opts)}),
-		"live-migrating server %s", id)
+	_, err := LiveMigrateServerRequestID(ctx, c, id, opts)
+	return err
+}
+
+// LiveMigrateServerRequestID is [LiveMigrateServer] that also returns nova's
+// request ID, the key of the server's instance action for this migration
+// ([GetInstanceAction]).
+func LiveMigrateServerRequestID(ctx context.Context, c *gophercloud.ServiceClient, id string, opts LiveMigrateOpts) (string, error) {
+	reqID, err := postServerAction(ctx, c, id, map[string]any{"os-migrateLive": LiveMigrateBody(c, opts)})
+	return reqID, wrap(err, "live-migrating server %s", id)
 }
 
 // EvacuateForceRemovedMicroversion is the microversion that removed force
@@ -127,8 +135,16 @@ func EvacuateBody(c *gophercloud.ServiceClient, opts EvacuateOpts) map[string]an
 // EvacuateServer rebuilds a server of a failed host on another host. Nova
 // refuses it while the server's compute service is up.
 func EvacuateServer(ctx context.Context, c *gophercloud.ServiceClient, id string, opts EvacuateOpts) error {
-	return wrap(serverAction(ctx, c, id, map[string]any{"evacuate": EvacuateBody(c, opts)}),
-		"evacuating server %s", id)
+	_, err := EvacuateServerRequestID(ctx, c, id, opts)
+	return err
+}
+
+// EvacuateServerRequestID is [EvacuateServer] that also returns nova's
+// request ID, the key of the server's instance action for this evacuation
+// ([GetInstanceAction]).
+func EvacuateServerRequestID(ctx context.Context, c *gophercloud.ServiceClient, id string, opts EvacuateOpts) (string, error) {
+	reqID, err := postServerAction(ctx, c, id, map[string]any{"evacuate": EvacuateBody(c, opts)})
+	return reqID, wrap(err, "evacuating server %s", id)
 }
 
 // ConfirmMigration confirms a cold migration or resize, and reports

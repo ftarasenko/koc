@@ -253,3 +253,53 @@ func ExampleListFirewallRules() {
 	// web allow from any
 	// from-dmz deny from group-dmz
 }
+
+// Finish a port's move to another host: activate its binding there, then
+// drop the binding left on the old host.
+func ExampleActivatePortBinding() {
+	neutronAPI := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Println(r.Method, r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		switch r.Method {
+		case http.MethodGet:
+			_, _ = io.WriteString(w, `{"bindings":[`+
+				`{"host":"cmp-01","status":"ACTIVE"},{"host":"cmp-02","status":"INACTIVE"}]}`)
+		case http.MethodPut:
+			_, _ = io.WriteString(w, `{"binding":{"host":"cmp-02","status":"ACTIVE"}}`)
+		default:
+			w.WriteHeader(http.StatusNoContent)
+		}
+	}))
+	defer neutronAPI.Close()
+
+	pc := &gophercloud.ProviderClient{
+		EndpointLocator: func(gophercloud.EndpointOpts) (string, error) { return neutronAPI.URL + "/", nil },
+	}
+	nc, err := openstack.FromProvider(pc, gophercloud.EndpointOpts{}, openstack.Options{}).Network()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	ctx := context.Background()
+	bindings, err := network.ListPortBindings(ctx, nc, "port-1")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	for _, b := range bindings {
+		if b.Status != "INACTIVE" {
+			continue
+		}
+		if _, err := network.ActivatePortBinding(ctx, nc, "port-1", b.Host); err != nil {
+			fmt.Println(err)
+			return
+		}
+	}
+	if err := network.DeletePortBinding(ctx, nc, "port-1", "cmp-01"); err != nil {
+		fmt.Println(err)
+	}
+	// Output:
+	// GET /v2.0/ports/port-1/bindings
+	// PUT /v2.0/ports/port-1/bindings/cmp-02/activate
+	// DELETE /v2.0/ports/port-1/bindings/cmp-01
+}

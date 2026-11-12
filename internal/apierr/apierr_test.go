@@ -104,8 +104,11 @@ func TestMessage_RealClient(t *testing.T) {
 	defer srv.Close()
 	pc := &gophercloud.ProviderClient{HTTPClient: *srv.Client()}
 	sc := &gophercloud.ServiceClient{ProviderClient: pc, Endpoint: srv.URL + "/"}
-	_, err := sc.Put(context.Background(), sc.ServiceURL("v1", "nodes", "lab-node-1", "states", "provision"), map[string]string{"target": "abort"}, nil,
+	resp, err := sc.Put(context.Background(), sc.ServiceURL("v1", "nodes", "lab-node-1", "states", "provision"), map[string]string{"target": "abort"}, nil,
 		&gophercloud.RequestOpts{OkCodes: []int{202}})
+	if resp != nil {
+		_ = resp.Body.Close()
+	}
 	if err == nil {
 		t.Fatal("no error")
 	}

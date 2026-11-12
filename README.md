@@ -714,6 +714,20 @@ dumps `--debug` produces. The two combine; passwords in a URL are redacted.
 timing: GET    https://nova.example/v2.1/servers/detail 200 in 412ms
 ```
 
+### Error messages
+
+A failed API call prints one line: the service's own sentence and the HTTP
+status, without the request or the JSON envelope (Ironic, Nova, Neutron,
+Cinder, Glance, Keystone and plain-text bodies are unwrapped; an unknown body is
+printed as it came, trimmed). The exit status is unchanged. `--debug` adds the
+method, URL path and request id; a few known refusals add a `hint:` line. The
+`koc:` label is bold red on a terminal unless `NO_COLOR` is set.
+
+```
+koc: abort node n1: The requested action "abort" can not be performed on node "n1" while it is in state "wait call-back". (HTTP 400)
+hint: this Ironic does not abort a deploy that waits for its call-back; tear it down instead: koc baremetal node undeploy n1
+```
+
 ### Hypervisor allocation gauges
 
 `koc hypervisor list --gauge` renders vCPU/RAM/Disk allocation as color bars with

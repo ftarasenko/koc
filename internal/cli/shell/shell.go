@@ -34,9 +34,9 @@ type Config struct {
 	// Run executes one koc invocation on a fresh tree; prepare sees the tree
 	// and the expanded args before execution. It is cli.Run.
 	Run func(ctx context.Context, args []string, prepare func(root *cobra.Command, args []string)) (*cobra.Command, error)
-	// ExitStatus maps Run's outcome to an exit status and a message. It is
-	// cli.ExitStatus.
-	ExitStatus func(cmd *cobra.Command, err error) (int, string)
+	// ExitStatus maps Run's outcome to an exit status and a message for w, the
+	// writer the message goes to. It is cli.ExitStatusFor.
+	ExitStatus func(cmd *cobra.Command, err error, w io.Writer) (int, string)
 	// NewRoot builds a fresh command tree, for completion and redaction.
 	NewRoot func() *cobra.Command
 	// Expand applies koc's command and flag abbreviation to args.
@@ -332,7 +332,7 @@ func (s *Shell) run(ctx context.Context, args []string, rec *lineRecord) int {
 		// not the region or project it was refused for asking.
 		s.describe(rec, root, cmd, !refused)
 	}
-	code, msg := s.cfg.ExitStatus(cmd, err)
+	code, msg := s.cfg.ExitStatus(cmd, err, s.errOut)
 	if msg != "" {
 		s.println(msg)
 	}

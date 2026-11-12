@@ -20,7 +20,7 @@ func shellConfig(version string) shell.Config {
 		Run: func(ctx context.Context, args []string, prepare func(*cobra.Command, []string)) (*cobra.Command, error) {
 			return Run(ctx, version, args, prepare)
 		},
-		ExitStatus: ExitStatus,
+		ExitStatus: ExitStatusFor,
 		NewRoot:    func() *cobra.Command { return NewRootCommand(version) },
 		Expand:     ExpandArgs,
 	}

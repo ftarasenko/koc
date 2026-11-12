@@ -10,6 +10,7 @@ import (
 
 	th "github.com/gophercloud/gophercloud/v2/testhelper"
 
+	"github.com/ftarasenko/koc/internal/apierr"
 	"github.com/ftarasenko/koc/internal/output"
 )
 
@@ -138,5 +139,31 @@ func TestRunDriverShow_RequestAndOutput(t *testing.T) {
 		if !strings.Contains(out, want) {
 			t.Errorf("driver show output missing %q\n---\n%s", want, out)
 		}
+	}
+}
+
+// TestRunNodeAbort_RefusedInWaitCallBack: an Ironic that refuses the abort
+// answers with an envelope in a string; the error keeps the command's context
+// and carries the gophercloud error to the shared formatter.
+func TestRunNodeAbort_RefusedInWaitCallBack(t *testing.T) {
+	fakeServer := th.SetupHTTP()
+	defer fakeServer.Teardown()
+
+	const refusal = `{"error_message": "{\"faultcode\": \"Client\", \"faultstring\": \"The requested action \\\"abort\\\" can not be performed on node \\\"node-1\\\" while it is in state \\\"wait call-back\\\".\", \"debuginfo\": null}"}`
+	fakeServer.Mux.HandleFunc("/nodes/node-1/states/provision", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(refusal))
+	})
+
+	err := runNodeAbort(context.Background(), baremetalClient(fakeServer, "latest"), "node-1", false, 0, &bytes.Buffer{})
+	if err == nil {
+		t.Fatal("runNodeAbort succeeded against a 400")
+	}
+	got := apierr.Message(err, apierr.Options{})
+	want := "abort node node-1: The requested action \"abort\" can not be performed on node \"node-1\" while it is in state \"wait call-back\". (HTTP 400)\n" +
+		"hint: this Ironic does not abort a deploy that waits for its call-back; tear it down instead: koc baremetal node undeploy node-1"
+	if got != want {
+		t.Errorf("got  %q\nwant %q", got, want)
 	}
 }

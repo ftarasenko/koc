@@ -25,7 +25,8 @@ func main() {
 	// cli.Run builds the command tree, expands abbreviated command and flag
 	// names the way `openstack` accepts them, executes, and prints --timing.
 	// The same function runs each line of `koc shell`.
-	code, msg := cli.ExitStatus(cli.Run(ctx, version, os.Args[1:], nil))
+	cmd, err := cli.Run(ctx, version, os.Args[1:], nil)
+	code, msg := cli.ExitStatusFor(cmd, err, os.Stderr)
 	if msg != "" {
 		fmt.Fprintln(os.Stderr, msg)
 	}

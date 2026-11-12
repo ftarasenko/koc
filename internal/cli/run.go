@@ -3,9 +3,12 @@ package cli
 import (
 	"context"
 	"errors"
+	"io"
+	"strings"
 
 	"github.com/spf13/cobra"
 
+	"github.com/ftarasenko/koc/internal/apierr"
 	"github.com/ftarasenko/koc/internal/auth"
 	"github.com/ftarasenko/koc/internal/cli/resolve"
 )
@@ -72,21 +75,42 @@ func ExpandArgs(root *cobra.Command, args []string) []string {
 }
 
 // ExitStatus maps the outcome of Run to the process exit status and the line
-// to print on stderr ("" for success).
+// to print on stderr ("" for success), unstyled.
 func ExitStatus(cmd *cobra.Command, err error) (int, string) {
+	return exitStatus(cmd, err, false)
+}
+
+// ExitStatusFor is ExitStatus for a line that goes to w: styled when w is a
+// terminal and NO_COLOR is unset.
+func ExitStatusFor(cmd *cobra.Command, err error, w io.Writer) (int, string) {
+	return exitStatus(cmd, err, apierr.UseColor(w))
+}
+
+func exitStatus(cmd *cobra.Command, err error, color bool) (int, string) {
+	prefix := apierr.Prefix(color)
 	switch {
 	case err == nil:
 		return ExitOK, ""
 	case errors.Is(err, context.Canceled):
-		return ExitInterrupted, interruptMessage(err)
+		return ExitInterrupted, prefix + strings.TrimPrefix(interruptMessage(err), "koc: ")
 	case isUsageError(cmd, err):
 		// cobra rejected the invocation itself — unknown flag, wrong argument
 		// count, or an unknown noun/verb — the same class of error cliff/OSC
 		// exits 2 for.
-		return ExitUsage, "koc: " + err.Error()
+		return ExitUsage, prefix + err.Error()
 	default:
-		return ExitFailure, "koc: " + err.Error()
+		return ExitFailure, prefix + apierr.Message(err, apierr.Options{Debug: debugRequested(cmd), Color: color})
 	}
+}
+
+// debugRequested reports whether the command that ran had --debug (or
+// OS_DEBUG) on, which is what asks for the request line behind an API error.
+func debugRequested(cmd *cobra.Command) bool {
+	if cmd == nil {
+		return false
+	}
+	f := cmd.Flag("debug")
+	return f != nil && f.Value.String() == "true"
 }
 
 // interruptMessage says what an interrupt left behind.

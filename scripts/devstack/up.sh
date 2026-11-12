@@ -30,7 +30,7 @@
 # Outputs, all under --log-dir:
 #   stack.sh.log       devstack's own log (ends with its component timing table)
 #   local.conf         the exact configuration used
-#   refs.txt           the git ref resolved for devstack and every plugin
+#   refs.txt           the git ref resolved for devstack, its core projects and every plugin
 #   bringup.json       series, backend, refs, host, durations, peak RAM, disk used, result
 #   functional.env     OS_CLOUD, S3 credentials and fixture names for the tests
 #   openrc.env         the OS_* devstack's `openrc admin admin` exports, resolved,
@@ -151,6 +151,16 @@ mkdir -p "$LOG_DIR"
 # command substitution, where a failed lookup's die() would only end the
 # subshell and a cached ref would never reach refs.txt.
 NEEDED=(devstack)
+# The projects devstack itself clones. Its stackrc hard-sets TARGET_BRANCH to
+# stable/<series> and defaults each <PROJECT>_BRANCH to it, so once a series
+# moves to unmaintained/ or -eol the clone fails unless local.conf names the
+# resolved ref. Nothing else follows TARGET_BRANCH here: client and oslo
+# libraries only come from git when listed in LIBS_FROM_GIT (empty), the deploy
+# ramdisk that ironic would build from it is off, and os-test-images and
+# tempest are branchless.
+CORE_PROJECTS=(requirements keystone glance neutron)
+if has_feature core; then CORE_PROJECTS+=(nova placement cinder swift); fi
+NEEDED+=("${CORE_PROJECTS[@]}")
 if has_feature net; then
     NEEDED+=(neutron neutron-dynamic-routing networking-bgpvpn neutron-vpnaas neutron-fwaas tap-as-a-service)
 fi
@@ -171,6 +181,8 @@ SWIFT_HASH=1234123412341234
 DEST=$DEST
 LOGFILE=$LOG_DIR/stack.sh.log
 GIT_BASE=$GIT_BASE
+# The refs devstack's own clones use (see CORE_PROJECTS), not its stable/<series>.
+$(for p in "${CORE_PROJECTS[@]}"; do echo "${p^^}_BRANCH=${REFS[$p]}"; done)
 # Full clones, not GIT_DEPTH=1: pbr derives each project's version from its
 # tags, so a shallow clone installs as 0.0.0 and pip then rejects any plugin
 # that requires a minimum version of it (bagpipe needs networking-bgpvpn>=12)

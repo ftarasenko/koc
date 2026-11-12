@@ -187,8 +187,8 @@ func provisionErr(verb, id string, err error) error {
 	var me *bmapi.MicroversionError
 	if errors.As(err, &me) {
 		relabelled := *me
-		relabelled.Err = fmt.Errorf("requesting %s on node %s: %w", verb, id, errors.Unwrap(me.Err))
+		relabelled.Err = fmt.Errorf("%s node %s: %w", verb, id, errors.Unwrap(me.Err))
 		return explained(&relabelled)
 	}
-	return fmt.Errorf("requesting %s on node %s: %w", verb, id, errors.Unwrap(err))
+	return fmt.Errorf("%s node %s: %w", verb, id, errors.Unwrap(err))
 }

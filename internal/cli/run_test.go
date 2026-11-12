@@ -6,10 +6,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"strings"
 	"testing"
 
+	"github.com/gophercloud/gophercloud/v2"
 	"github.com/spf13/cobra"
 )
 
@@ -86,6 +88,51 @@ func TestExitStatus(t *testing.T) {
 		if code, _ := ExitStatus(tc.cmd, tc.err); code != tc.code {
 			t.Errorf("%s: exit %d, want %d", tc.name, code, tc.code)
 		}
+	}
+}
+
+func apiFailure(path string, code int, body string) error {
+	return fmt.Errorf("abort node lab-node-1: %w", gophercloud.ErrUnexpectedResponseCode{
+		URL: "https://cloud.example.test:6385" + path, Method: http.MethodPut,
+		Expected: []int{202}, Actual: code, Body: []byte(body),
+	})
+}
+
+// TestExitStatus_APIError: an API failure is one clean line, keeps the exit
+// status of any other failure, and shows the request only under --debug.
+func TestExitStatus_APIError(t *testing.T) {
+	const body = `{"error_message": "{\"faultstring\": \"Node is busy.\"}"}`
+	err := apiFailure("/v1/nodes/lab-node-1/states/provision", 400, body)
+
+	ran := &cobra.Command{SilenceUsage: true}
+	code, msg := ExitStatus(ran, err)
+	if code != ExitFailure || msg != "koc: abort node lab-node-1: Node is busy. (HTTP 400)" {
+		t.Errorf("exit %d, %q", code, msg)
+	}
+
+	debug := &cobra.Command{SilenceUsage: true}
+	debug.Flags().Bool("debug", true, "")
+	code, msg = ExitStatus(debug, err)
+	if code != ExitFailure || msg != "koc: abort node lab-node-1: Node is busy. (HTTP 400, PUT /v1/nodes/lab-node-1/states/provision)" {
+		t.Errorf("--debug: exit %d, %q", code, msg)
+	}
+	if strings.Contains(msg, "cloud.example.test") {
+		t.Errorf("--debug printed the host: %q", msg)
+	}
+
+	// An error that is not an API response is passed through as it was.
+	if _, msg := ExitStatus(ran, errors.New("boom")); msg != "koc: boom" {
+		t.Errorf("plain error: %q", msg)
+	}
+}
+
+// TestExitStatusFor_NoColorOffATerminal: a writer that is not a terminal gets
+// no escape sequences.
+func TestExitStatusFor_NoColorOffATerminal(t *testing.T) {
+	var buf bytes.Buffer
+	_, msg := ExitStatusFor(&cobra.Command{SilenceUsage: true}, apiFailure("/x", 409, `{"error": "nope"}`), &buf)
+	if strings.Contains(msg, "\x1b") {
+		t.Errorf("escape sequence on a non-terminal: %q", msg)
 	}
 }
 

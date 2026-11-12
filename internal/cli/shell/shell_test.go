@@ -58,7 +58,7 @@ func (k *fakeKoc) config() Config {
 			}
 			return cmd, fn(ctx, args, root.OutOrStdout())
 		},
-		ExitStatus: func(_ *cobra.Command, err error) (int, string) {
+		ExitStatus: func(_ *cobra.Command, err error, _ io.Writer) (int, string) {
 			var f failure
 			switch {
 			case err == nil:

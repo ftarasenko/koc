@@ -23,6 +23,7 @@ func NewCommand(a *auth.Options, o *output.Options) *cobra.Command {
 		newAvailabilityZoneCommand(a, o),
 		newEventCommand(a, o),
 		newRecommendationCommand(a, o),
+		newMonitoringCommand(a, o),
 	)
 	return cmd
 }

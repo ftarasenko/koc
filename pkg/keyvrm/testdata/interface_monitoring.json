@@ -1,0 +1,25 @@
+{
+  "bond": {
+    "default_policy": {
+      "enabled": true,
+      "degraded_reaction": "send_alert",
+      "down_reaction": "fence_and_evacuate"
+    },
+    "interfaces": {
+      "bond0": {
+        "enabled": false,
+        "down_reaction": "disable_hypervisor"
+      }
+    }
+  },
+  "hba": {
+    "default_policy": {
+      "enabled": false,
+      "down_reaction": "send_alert"
+    },
+    "interfaces": {
+      "hba0": {}
+    },
+    "all_down_reaction": "fence_and_evacuate"
+  }
+}

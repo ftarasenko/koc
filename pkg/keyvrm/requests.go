@@ -38,7 +38,7 @@ func get[T any](ctx context.Context, sc *gophercloud.ServiceClient, url string) 
 	return &out, err
 }
 
-func put[T any](ctx context.Context, sc *gophercloud.ServiceClient, url string, body map[string]any) (*T, error) {
+func put[T any](ctx context.Context, sc *gophercloud.ServiceClient, url string, body any) (*T, error) {
 	var out T
 	resp, err := sc.Put(ctx, url, body, &out, okPut())
 	closeResp(resp)

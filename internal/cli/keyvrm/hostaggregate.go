@@ -21,6 +21,7 @@ func newHostAggregateConfigCommand(a *auth.Options, o *output.Options) *cobra.Co
 		newHASet(a, o),
 		newHAMarkers(a, o),
 		newHAEventCommand(a, o),
+		newInterfaceMonitoringCommand(a, o),
 	)
 	return cmd
 }

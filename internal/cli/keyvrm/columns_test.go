@@ -23,6 +23,10 @@ func TestSetVerbs_UnknownColumnSendsNothing(t *testing.T) {
 		"host-aggregate-config set": func(o *output.Options, s th.FakeServer) error {
 			return runHASet(ctx, keyvrmTestClient(s), o, "ha-1", body, io.Discard)
 		},
+		"interface-monitoring set": func(o *output.Options, s th.FakeServer) error {
+			edit := interfaceMonitoringEdit{bondEnabled: flag(true)}
+			return runInterfaceMonitoringSet(ctx, keyvrmTestClient(s), o, "ha-1", edit, io.Discard)
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			fakeServer := th.SetupHTTP()

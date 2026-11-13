@@ -1,0 +1,8 @@
+{
+  "enabled": true,
+  "zones": 1,
+  "aggregates": 2,
+  "processes": 3,
+  "problem_aggregates": 4,
+  "noop_aggregates": 5
+}

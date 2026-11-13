@@ -28,6 +28,12 @@ type Recommendation = keyvrmapi.Recommendation
 // Operation is keyvrmapi.Operation.
 type Operation = keyvrmapi.Operation
 
+// InterfaceMonitoring is keyvrmapi.InterfaceMonitoring.
+type InterfaceMonitoring = keyvrmapi.InterfaceMonitoring
+
+// MonitoringOverview is keyvrmapi.MonitoringOverview.
+type MonitoringOverview = keyvrmapi.MonitoringOverview
+
 // listOpts carries the shared pagination + optional filters for list calls.
 type listOpts struct {
 	Limit  int

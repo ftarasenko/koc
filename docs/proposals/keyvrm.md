@@ -55,6 +55,9 @@ send only non-null fields (`exclude_none`). List responses are
 | Host aggregate cfg | `GET /v1/host_aggregates/{id}` | — | `HostAggregateConfigDTO` |
 | Host aggregate cfg | `PUT /v1/host_aggregates/{id}` | HostAggregateConfigUpdate (also carries `no_op_mode`/`no_op_mode_reason`) | `HostAggregateConfigDTO` |
 | Host aggregate cfg | `GET /v1/host_aggregates/{id}/events` | `status`, `limit`, `offset` | list of `HostAggregateEventDTO` |
+| Host aggregate cfg | `GET /v1/host_aggregates/{id}/interface_monitoring` | — | `InterfaceMonitoring` (bond and HBA policies) |
+| Host aggregate cfg | `PUT /v1/host_aggregates/{id}/interface_monitoring` | InterfaceMonitoring (a full replace, unlike the merging PUTs above) | `InterfaceMonitoring` |
+| Monitoring | `GET /v1/monitoring/overview` | — | `MonitoringOverview` (`enabled` and five counters) |
 | Availability zone | `GET /v1/azones` | `limit`, `offset` | list of `AZoneDTO` |
 | Availability zone | `GET /v1/azones/{az_name}/host_aggregates` | `host_aggregate_name`, `no_op_mode`, `limit`, `offset` | `AZoneHostAggregatesDTO` |
 | Event | `GET /v1/host_aggregate_events/{id}` | — | `HostAggregateEventDTO` |
@@ -185,6 +188,8 @@ Namespaced under a `keyvrm` parent group to avoid clashing with OpenStack nouns
 | `ha-config markers` | `koc keyvrm host-aggregate-config markers` |
 | `ha-config noop-on/off <id>` | `koc keyvrm host-aggregate-config set <id> --no-op-mode true/false [--reason]` |
 | `ha-config events <id>` | `koc keyvrm host-aggregate-config event list <id>` |
+| (not in `kvrm`) | `koc keyvrm host-aggregate-config interface-monitoring show/set <id>` |
+| (not in `kvrm`) | `koc keyvrm monitoring show` |
 | `az list` | `koc keyvrm availability-zone list` |
 | `az host-aggregates <az>` | `koc keyvrm availability-zone host-aggregate list <az>` |
 | `event get <id>` | `koc keyvrm event show <id>` |

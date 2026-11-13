@@ -55,7 +55,6 @@ koc keyvrm event recommendation list
 koc keyvrm event recommendation run
 koc keyvrm event show
 koc keyvrm host-aggregate-config event list
-koc keyvrm host-aggregate-config list
 koc keyvrm host-aggregate-config markers
 koc keyvrm host-aggregate-config set
 koc keyvrm host-aggregate-config show

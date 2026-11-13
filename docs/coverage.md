@@ -3,7 +3,7 @@
 How much of the upstream OpenStack CLI surface `koc` implements, measured against
 primary sources rather than documentation.
 
-**Snapshot:** 2026-10-26 · `koc` @ this commit (base `c4f8c37`) · 754 leaf
+**Snapshot:** 2026-10-26 · `koc` @ this commit (base `c4f8c37`) · 757 leaf
 commands (visible tree; 2 more are hidden duplicates).
 
 **Keep this file current** — see "Updating this document" below. Any commit that
@@ -29,8 +29,8 @@ PyPI is the source of record.
 
 ## Headline
 
-**698 of 968 in-scope upstream commands (72%).** Of `koc`'s 754 leaf commands,
-698 are upstream-equivalent and 56 are koc-native.
+**698 of 968 in-scope upstream commands (72%).** Of `koc`'s 757 leaf commands,
+698 are upstream-equivalent and 59 are koc-native.
 
 `python-barbicanclient` became a baseline with the key-manager pass, which
 implemented 21 of its 23 commands — every one a supported cloud can answer —
@@ -577,12 +577,12 @@ them in line with `network`.
 
 ## koc-native commands
 
-No upstream equivalent, by design — **56 leaves**, itemised so the total
-reconciles with the headline (754 = 698 + 56):
+No upstream equivalent, by design — **59 leaves**, itemised so the total
+reconciles with the headline (757 = 698 + 59):
 
 | Count | Commands | Why it has no upstream equivalent |
 | --- | --- | --- |
-| 18 | `koc keyvrm …` — `app-config` ×2, `availability-zone` ×2, `event` ×4, `host-aggregate-config` ×5, `recommendation` ×5 | in-house KeyVRM catalog service; no gophercloud package and no OSC plugin |
+| 21 | `koc keyvrm …` — `app-config` ×2, `availability-zone` ×2, `event` ×4, `host-aggregate-config` ×7 (with `interface-monitoring show/set`), `monitoring` ×1, `recommendation` ×5 | in-house KeyVRM catalog service; no gophercloud package and no OSC plugin |
 | 5 | `koc vault kv list/get/copy/export/decrypt` | Vault is not an OpenStack service; `copy` fills a gap in the Vault CLI itself |
 | 15 | `koc s3 bucket list/create/delete/show/set`, `koc s3 object list/show/delete`, `koc s3 du`, `koc s3 download/upload`, `koc s3 copy/move`, `koc s3 presign`, `koc s3 sync` | S3 is not an OpenStack service. Upstream's object-store commands speak **Swift**, which is a different API and is counted separately as not targeted (`openstack.object_store.v1`, 0/17); these talk to the LCM cluster's Garage, which holds GitLab's object storage and the `backup-db` pipeline's MariaDB dumps |
 | 2 | `koc dns pool list/show` | designate's API and its Python SDK both expose `/v2/pools`, but `python-designateclient` registers no `openstack` command for it. Reads only — pool *writes* are a `designate-manage`/config operation on the servers |
@@ -655,7 +655,7 @@ The tables are derived, not hand-maintained. To re-derive after a version bump
 or a batch of new commands:
 
 ```sh
-# 1. koc's own command tree (754 leaf commands at the snapshot above)
+# 1. koc's own command tree (757 leaf commands at the snapshot above)
 make build
 # Walk `--help` recursively. Count a command when it is *runnable*, not merely when
 # it is childless: `koc image import <image>` is a verb that also parents `koc image
@@ -685,7 +685,7 @@ Then **check the arithmetic**, because that is the only thing that makes these
 tables worth reading. Three identities must hold at every snapshot:
 
 1. every raw row numerator summed = the headline numerator (698);
-2. leaf commands = headline numerator + koc-native (754 = 698 + 56);
+2. leaf commands = headline numerator + koc-native (757 = 698 + 59);
 3. every raw row denominator summed = 1027, and minus what is not targeted
    (swift 17 + manila 40 + barbican's `ca` 2) = the in-scope denominator (968).
 

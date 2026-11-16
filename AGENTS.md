@@ -275,7 +275,7 @@ internal/cli/              root.go wires every service's command group onto the 
                            watch.go gives every read verb --watch in the same final pass;
                            run.go is one invocation on a fresh tree (main and every shell line);
                            embedded.go is the embedded profile's one refusal table
-internal/cli/shell/        "koc shell": x/term REPL, cobra completion, scope-file reload, audit events
+internal/cli/shell/        "koc shell": x/term REPL, cobra completion, scope-file reload, audit events, per-line request id (KOC_REQUEST_ID_FILE)
 internal/cli/resolve/      the CLI's name→ID policy (zero-match fallback, --watch memo) over pkg/openstack/resolve
 internal/cli/<service>/    one package per service; one file per noun; a client.go helper
 pkg/                       the PUBLIC Go API (see "Public Go API"); the CLI is its first consumer

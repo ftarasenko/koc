@@ -74,6 +74,7 @@ exits 0; check each line's output or the audit log.
 | `KOC_HISTORY_FILE` | persist history here; without it history is in memory only |
 | `KOC_AUDIT_FD` | write audit events to this inherited file descriptor (3 or above) |
 | `KOC_AUDIT_FILE` | … or append them to this file; relative paths resolve inside `KOC_HOME` |
+| `KOC_REQUEST_ID_FILE` | a file the host rewrites with the next line's request id (`req-<uuid>`); each line takes the id once, else mints its own (below) |
 | `KOC_PROXY_SOCKET` | unix socket of a forward proxy; every OpenStack API request goes out as a `CONNECT` through it (below) |
 
 Without any of them koc behaves exactly as before.
@@ -234,6 +235,18 @@ cinder transfer `auth_key`, generated private keys), `--timing`,
 A refused line exits 1 with the message on stderr; in the shell, it sets the
 prompt's status and is an audit event with a `refused` reason.
 
+## Request ids
+
+Every line gets its own `req-<uuid4>`, sent as `X-OpenStack-Request-ID` on all
+its OpenStack calls (README, "Request id"). One shell is one process, so a host
+cannot pass a per-line id in the environment. It writes the id of the next line,
+atomically, into `KOC_REQUEST_ID_FILE` (one `req-<lowercase uuid>`, optional
+newline). Before each line koc reads the file: a valid id it has not used yet is
+the line's id; a missing, malformed or already used one makes koc mint its own
+(`OS_REQUEST_ID`, when set and valid, is used instead of a fresh one). An id
+typed on the line (`--request-id`) wins over all of these. The id the line ran
+with goes into its audit event as `request_id`.
+
 ## Audit events
 
 With `KOC_AUDIT_FD` or `KOC_AUDIT_FILE` set, the shell writes one JSON object
@@ -253,6 +266,7 @@ empty lines or comments. The command's output is never part of an event.
 | `region`, `project_id` | the scope the line ran in (a line's own `--os-region-name`/`--os-project-id` included); for a refused line, the session's |
 | `exit_code` | the line's status, as the prompt shows it |
 | `duration_ms` | wall-clock time of the line |
+| `request_id` | the global request id the line ran with (also built-ins and refused lines): the `X-OpenStack-Request-ID` of every call it made |
 | `refused` | present only for a refused line: `syntax`, `nested` (`shell` inside the shell), `expired`, `scope` (scope file unusable), or the embedded profile's `credential`, `scope`, `file`, `prompt`, `command`, `private-key` |
 
 A secret is recognised by flag name with the same key list `--debug` redacts

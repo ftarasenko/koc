@@ -733,7 +733,9 @@ request id: req-3f2a9c1e-5b7d-4e08-9a41-6c0d2b8e7f15
 To use an id of your own (for example one a wrapper already logged), pass
 `--request-id req-<uuid>` or set `OS_REQUEST_ID`; the flag wins. The value must
 be `req-` plus a lowercase UUID; anything else is refused before a call is made.
-`koc shell` mints one per line unless the variable is set.
+`koc shell` mints one per line unless the variable is set; an embedding host
+hands each line its own id through `KOC_REQUEST_ID_FILE`, and the audit event
+records it as `request_id` (docs/shell.md).
 
 ### Error messages
 

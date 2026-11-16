@@ -11,11 +11,12 @@ import (
 	"github.com/ftarasenko/koc/internal/apierr"
 	"github.com/ftarasenko/koc/internal/auth"
 	"github.com/ftarasenko/koc/internal/cli/resolve"
+	"github.com/ftarasenko/koc/internal/cli/shell"
 )
 
 // RequestIDAnnotation is the root-command annotation that carries the
 // invocation's global request id from PersistentPreRunE to the error printer.
-const RequestIDAnnotation = "koc.request-id"
+const RequestIDAnnotation = shell.RequestIDAnnotation
 
 // Exit statuses koc reports, matching what cliff/OSC exits with.
 const (

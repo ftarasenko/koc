@@ -106,6 +106,9 @@ type Shell struct {
 	sigterm atomic.Bool
 	// audit is the KOC_AUDIT_FD / KOC_AUDIT_FILE sink; nil without one.
 	audit *auditLog
+	// lastRequestID is the last id taken from KOC_REQUEST_ID_FILE, so a file
+	// the host has not refreshed yet is never used for two lines.
+	lastRequestID string
 }
 
 // Run runs the shell until exit, Ctrl-D, end of input or SIGTERM.
@@ -194,7 +197,7 @@ func (s *Shell) terminated() bool {
 // shell should end.
 func (s *Shell) runLine(ctx context.Context, line string) (exit bool) {
 	sc := s.scope()
-	rec := &lineRecord{start: s.now(), region: sc.region, projectID: sc.projectID}
+	rec := &lineRecord{start: s.now(), region: sc.region, projectID: sc.projectID, requestID: s.lineRequestID()}
 	args, err := splitLine(line)
 	if err != nil {
 		s.status = 2
@@ -230,6 +233,7 @@ func (s *Shell) record(rec *lineRecord) {
 		ExitCode:   s.status,
 		DurationMS: s.now().Sub(rec.start).Milliseconds(),
 		Refused:    rec.refused,
+		RequestID:  rec.requestID,
 	})
 }
 
@@ -320,6 +324,7 @@ func (s *Shell) run(ctx context.Context, args []string, rec *lineRecord) int {
 	cmd, err := s.cfg.Run(lineCtx, args, func(r *cobra.Command, expanded []string) {
 		root = r
 		s.prepare(r)
+		s.applyRequestID(r, rec)
 		rec.argv = redactArgs(r, expanded)
 	})
 	var ref refusal
@@ -328,6 +333,11 @@ func (s *Shell) run(ctx context.Context, args []string, rec *lineRecord) int {
 		rec.refused = ref.RefusalReason()
 	}
 	if root != nil {
+		// The id the line ran with: the one it resolved, which a flag typed on
+		// the line may have replaced.
+		if id := root.Annotations[RequestIDAnnotation]; id != "" {
+			rec.requestID = id
+		}
 		// A refused line ran in no scope of its own: it keeps the session's,
 		// not the region or project it was refused for asking.
 		s.describe(rec, root, cmd, !refused)

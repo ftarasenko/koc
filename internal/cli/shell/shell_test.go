@@ -27,6 +27,8 @@ import (
 type fakeKoc struct {
 	mu    sync.Mutex
 	calls [][]string
+	// ids are the request ids the lines ran with.
+	ids []string
 	// behave maps a command word to what it does; nil means "succeed".
 	behave map[string]func(ctx context.Context, args []string, out io.Writer) error
 }
@@ -43,6 +45,22 @@ func (k *fakeKoc) config() Config {
 			root.SetOut(&out)
 			if prepare != nil {
 				prepare(root, args)
+			}
+			// A flag typed on the line, parsed after the prepare hook as cobra does.
+			for i, a := range args {
+				if a == "--request-id" && i+1 < len(args) {
+					_ = root.PersistentFlags().Set("request-id", args[i+1])
+				}
+			}
+			// What the real root's PersistentPreRunE does with the flag.
+			if f := root.PersistentFlags().Lookup("request-id"); f != nil && f.Value.String() != "" {
+				if root.Annotations == nil {
+					root.Annotations = map[string]string{}
+				}
+				root.Annotations[RequestIDAnnotation] = f.Value.String()
+				k.mu.Lock()
+				k.ids = append(k.ids, f.Value.String())
+				k.mu.Unlock()
 			}
 			k.mu.Lock()
 			k.calls = append(k.calls, args)
@@ -86,6 +104,7 @@ func testTree() *cobra.Command {
 	root := &cobra.Command{Use: "koc", SilenceErrors: true, SilenceUsage: true}
 	root.PersistentFlags().String("os-password", "", "password")
 	root.PersistentFlags().String("os-region-name", "", "region")
+	root.PersistentFlags().String("request-id", "", "request id")
 	server := &cobra.Command{Use: "server", Short: "Compute server commands"}
 	list := &cobra.Command{Use: "list", Short: "List servers", RunE: func(*cobra.Command, []string) error { return nil }}
 	list.Flags().Bool("long", false, "more columns")

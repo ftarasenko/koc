@@ -164,3 +164,28 @@ func TestRequestID_InDebug(t *testing.T) {
 		t.Errorf("--debug dump lacks the header:\n%s", stderr)
 	}
 }
+
+// The shell hands a line its id by setting the flag's value in the prepare
+// hook (KOC_REQUEST_ID_FILE); every call carries it, and the root records it.
+func TestRequestID_SetByThePrepareHook(t *testing.T) {
+	k := &keystoneFleet{}
+	startFleet(t, k)
+	const id = "req-aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"
+	var out strings.Builder
+	var root *cobra.Command
+	cmd, err := Run(t.Context(), "test", []string{"server", "list"}, func(r *cobra.Command, _ []string) {
+		root = r
+		r.SetOut(&out)
+		r.SetErr(&out)
+		if err := r.PersistentFlags().Set("request-id", id); err != nil {
+			t.Fatal(err)
+		}
+	})
+	if code, _ := ExitStatus(cmd, err); code != 0 {
+		t.Fatalf("exit %d: %v\n%s", code, err, out.String())
+	}
+	assertAllIDs(t, k, id)
+	if got := root.Annotations[RequestIDAnnotation]; got != id {
+		t.Errorf("annotation %q, want %q", got, id)
+	}
+}

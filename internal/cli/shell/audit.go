@@ -54,6 +54,7 @@ type auditEvent struct {
 	ExitCode   int      `json:"exit_code"`
 	DurationMS int64    `json:"duration_ms"`
 	Refused    string   `json:"refused,omitempty"`
+	RequestID  string   `json:"request_id,omitempty"`
 }
 
 // auditLog writes events; a nil *auditLog writes nothing.
@@ -137,4 +138,6 @@ type lineRecord struct {
 	region    string
 	projectID string
 	refused   string
+	// requestID is the global request id the line ran (or was refused) with.
+	requestID string
 }

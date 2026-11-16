@@ -59,6 +59,7 @@ type ironicCreds struct {
 	insecure   bool
 	debug      bool
 	debugFmt   string // --debug-format
+	requestID  string // the invocation's global request id
 	timing     bool
 	timeout    time.Duration
 }
@@ -103,6 +104,7 @@ func (o *Options) loadIronicCreds(ctx context.Context) (*ironicCreds, error) {
 		timing:   o.Timing,
 		timeout:  o.Timeout,
 	}
+	ic.requestID, _ = o.ResolveRequestID()
 
 	scheme := "https"
 	if api.TLSCertificateName != "" {
@@ -176,6 +178,7 @@ func (ic *ironicCreds) baremetalClient(microversion string) (*gophercloud.Servic
 	if ic.timing {
 		rt = newTimingTransport(rt, os.Stderr)
 	}
+	rt = withRequestID(rt, ic.requestID)
 
 	pc := &gophercloud.ProviderClient{}
 	pc.HTTPClient = http.Client{

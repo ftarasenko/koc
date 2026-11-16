@@ -193,6 +193,11 @@ type Options struct {
 	// `openstack --debug` prints them).
 	DebugFormat string
 
+	// RequestID is the invocation's global request id, req-<uuid>, sent as
+	// X-OpenStack-Request-ID on every OpenStack call. Empty until
+	// ResolveRequestID mints one.
+	RequestID string
+
 	// Timing prints the wall-clock duration of each HTTP round trip to stderr.
 	// It is independent of Debug: timings without the full body dumps are what
 	// answer "why is this slow".
@@ -393,6 +398,8 @@ func (o *Options) AddFlags(fs *pflag.FlagSet) {
 	o.DebugFormat = envDebugFormat("KOC_DEBUG_FORMAT")
 	fs.Var((*debugFormatValue)(&o.DebugFormat), "debug-format",
 		"layout of the --debug dump: http (raw HTTP messages) or curl (curl commands, like openstack --debug) (env KOC_DEBUG_FORMAT)")
+	fs.StringVar(&o.RequestID, "request-id", os.Getenv("OS_REQUEST_ID"),
+		"global request id req-<uuid> sent as X-OpenStack-Request-ID on every call (env OS_REQUEST_ID); default: a new one per command, printed with every error")
 	fs.BoolVar(&o.Timing, "timing", false,
 		"print the wall-clock duration of each API call to stderr")
 

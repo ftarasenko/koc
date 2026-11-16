@@ -254,6 +254,7 @@ internal/auth/             one authenticated ProviderClient per invocation + per
   services.go              auth.Client factory methods: Compute()/Identity()/Volume()/...
   credsfrom.go             --creds-from-ns/-vault: standalone basic-auth ironic + Vault openrc → OS_*
   scopefile.go             KOC_SCOPE_FILE: a host-written token + scope, mapped onto the OS_* options
+  requestid.go             --request-id / OS_REQUEST_ID: one req-<uuid4> per command, stamped on every call (outermost transport)
   debug.go                 --debug transport: redacts tokens+secrets, elides large bodies
 internal/kube/             minimal read-only k8s REST client (kubeconfig + secret/Ironic reads); no client-go
 internal/vault/            minimal Vault REST client (AppRole login / token + KV v2 read + X-Vault-Namespace)
@@ -274,7 +275,7 @@ internal/cli/              root.go wires every service's command group onto the 
                            watch.go gives every read verb --watch in the same final pass;
                            run.go is one invocation on a fresh tree (main and every shell line);
                            embedded.go is the embedded profile's one refusal table
-internal/cli/shell/        "koc shell": x/term REPL, cobra completion, scope-file reload, audit events
+internal/cli/shell/        "koc shell": x/term REPL, cobra completion, scope-file reload, audit events, per-line request id (KOC_REQUEST_ID_FILE)
 internal/cli/resolve/      the CLI's name→ID policy (zero-match fallback, --watch memo) over pkg/openstack/resolve
 internal/cli/<service>/    one package per service; one file per noun; a client.go helper
 pkg/                       the PUBLIC Go API (see "Public Go API"); the CLI is its first consumer

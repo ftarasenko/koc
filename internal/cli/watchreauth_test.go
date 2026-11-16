@@ -29,6 +29,15 @@ type keystoneFleet struct {
 	lists    atomic.Int64
 	base     string
 	listCode func(n int64) int
+	// reqIDs is the X-OpenStack-Request-ID of every request, in arrival order
+	// ("" when the request carried none).
+	reqIDs []string
+}
+
+func (k *keystoneFleet) record(r *http.Request) {
+	k.mu.Lock()
+	defer k.mu.Unlock()
+	k.reqIDs = append(k.reqIDs, r.Header.Get("X-OpenStack-Request-ID"))
 }
 
 func (k *keystoneFleet) handler(t *testing.T) http.Handler {
@@ -36,7 +45,8 @@ func (k *keystoneFleet) handler(t *testing.T) http.Handler {
 	k.expired = map[string]bool{}
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("POST /v3/auth/tokens", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("POST /v3/auth/tokens", func(w http.ResponseWriter, r *http.Request) {
+		k.record(r)
 		n := k.tokens.Add(1)
 		k.mu.Lock()
 		refuse := k.refuse
@@ -66,6 +76,7 @@ func (k *keystoneFleet) handler(t *testing.T) http.Handler {
 	})
 
 	mux.HandleFunc("GET /v2.1/servers/detail", func(w http.ResponseWriter, r *http.Request) {
+		k.record(r)
 		n := k.lists.Add(1)
 		tok := r.Header.Get("X-Auth-Token")
 		k.mu.Lock()

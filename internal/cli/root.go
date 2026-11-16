@@ -4,6 +4,7 @@ package cli
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -48,6 +49,21 @@ func NewRootCommand(version string) *cobra.Command {
 		// runs, so a bad arg count or unknown flag still prints the full usage
 		// block, while a runtime RunE failure (auth/API error) does not.
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
+			// The invocation's one global request id: --request-id / OS_REQUEST_ID
+			// (an invalid one is a usage error), else a fresh req-<uuid4>. It
+			// is kept on the root so the error printer can name it.
+			id, err := authOpts.ResolveRequestID()
+			if err != nil {
+				return err
+			}
+			if root := cmd.Root(); root.Annotations == nil {
+				root.Annotations = map[string]string{RequestIDAnnotation: id}
+			} else {
+				root.Annotations[RequestIDAnnotation] = id
+			}
+			if authOpts.Debug {
+				fmt.Fprintf(os.Stderr, "request id: %s\n", id)
+			}
 			cmd.SilenceUsage = true
 			// The embedded profile's refusals (embedded.go); a no-op otherwise.
 			return checkEmbedded(cmd)

@@ -13,6 +13,10 @@ import (
 	"github.com/ftarasenko/koc/internal/cli/resolve"
 )
 
+// RequestIDAnnotation is the root-command annotation that carries the
+// invocation's global request id from PersistentPreRunE to the error printer.
+const RequestIDAnnotation = "koc.request-id"
+
 // Exit statuses koc reports, matching what cliff/OSC exits with.
 const (
 	ExitOK          = 0
@@ -99,8 +103,21 @@ func exitStatus(cmd *cobra.Command, err error, color bool) (int, string) {
 		// exits 2 for.
 		return ExitUsage, prefix + err.Error()
 	default:
-		return ExitFailure, prefix + apierr.Message(err, apierr.Options{Debug: debugRequested(cmd), Color: color})
+		return ExitFailure, prefix + apierr.Message(err, apierr.Options{Debug: debugRequested(cmd), Color: color}) + requestIDLine(cmd)
 	}
+}
+
+// requestIDLine is the trailing line that names the request id the failed
+// command sent, so an operator can grep nova, neutron or the gateway logs for
+// it. Empty when the command never got that far (a usage error).
+func requestIDLine(cmd *cobra.Command) string {
+	if cmd == nil {
+		return ""
+	}
+	if id := cmd.Root().Annotations[RequestIDAnnotation]; id != "" {
+		return "\nrequest id: " + id
+	}
+	return ""
 }
 
 // debugRequested reports whether the command that ran had --debug (or

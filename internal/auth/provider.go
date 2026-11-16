@@ -39,6 +39,9 @@ func (o *Options) Authenticate(ctx context.Context) (*Client, error) {
 	if err := envError(); err != nil {
 		return nil, err
 	}
+	if _, err := o.ResolveRequestID(); err != nil {
+		return nil, err
+	}
 	if o.CredsFromNS != "" && o.CredsFromVault != "" {
 		return nil, fmt.Errorf("--creds-from-ns and --creds-from-vault are mutually exclusive")
 	}

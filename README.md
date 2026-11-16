@@ -715,6 +715,26 @@ dumps `--debug` produces. The two combine; passwords in a URL are redacted.
 timing: GET    https://nova.example/v2.1/servers/detail 200 in 412ms
 ```
 
+### Request id
+
+Every command gets one global request id, `req-<uuid4>`, and sends it as
+`X-OpenStack-Request-ID` on every OpenStack call it makes: all services, the
+token request, retries and re-authentication included. Nova, Neutron and the
+other services log it as `global_request_id` beside their own per-call id, so one
+`grep req-…` follows a command across the cloud. A failed command prints it as
+the last line of the error; `--debug` prints it up front and the dump shows the
+header.
+
+```
+koc: no such server (HTTP 404)
+request id: req-3f2a9c1e-5b7d-4e08-9a41-6c0d2b8e7f15
+```
+
+To use an id of your own (for example one a wrapper already logged), pass
+`--request-id req-<uuid>` or set `OS_REQUEST_ID`; the flag wins. The value must
+be `req-` plus a lowercase UUID; anything else is refused before a call is made.
+`koc shell` mints one per line unless the variable is set.
+
 ### Error messages
 
 A failed API call prints one line: the service's own sentence and the HTTP

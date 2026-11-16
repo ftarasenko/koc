@@ -84,7 +84,8 @@ func sameHostRedirect(req *http.Request, via []*http.Request) error {
 }
 
 // instrument wraps a transport with the --debug dump and the --timing meter, in
-// that order, so the timing line follows the dump for the same call. It is
+// that order, so the timing line follows the dump for the same call, and stamps
+// every call with the global request id. It is
 // applied to the transport handed to gophercloud *before* authentication, so the
 // token request, the returned catalog and an auth failure are all visible.
 //
@@ -97,7 +98,10 @@ func (o *Options) instrument(rt http.RoundTripper, insecure bool) http.RoundTrip
 	if o.Timing {
 		rt = newTimingTransport(rt, os.Stderr)
 	}
-	return rt
+	// Outermost, so the --debug dump shows the header. Authenticate has already
+	// resolved the id (an invalid one is refused there), so this cannot fail.
+	id, _ := o.ResolveRequestID()
+	return withRequestID(rt, id)
 }
 
 // httpClient assembles the client for an OpenStack endpoint: koc's transport,

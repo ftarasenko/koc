@@ -254,6 +254,7 @@ internal/auth/             one authenticated ProviderClient per invocation + per
   services.go              auth.Client factory methods: Compute()/Identity()/Volume()/...
   credsfrom.go             --creds-from-ns/-vault: standalone basic-auth ironic + Vault openrc → OS_*
   scopefile.go             KOC_SCOPE_FILE: a host-written token + scope, mapped onto the OS_* options
+  requestid.go             --request-id / OS_REQUEST_ID: one req-<uuid4> per command, stamped on every call (outermost transport)
   debug.go                 --debug transport: redacts tokens+secrets, elides large bodies
 internal/kube/             minimal read-only k8s REST client (kubeconfig + secret/Ironic reads); no client-go
 internal/vault/            minimal Vault REST client (AppRole login / token + KV v2 read + X-Vault-Namespace)

@@ -1,0 +1,432 @@
+{
+ "role_assignments": [
+  {
+   "links": {
+    "assignment": "http://ks.example/v3/y",
+    "membership": "http://ks.example/v3/groups/g0000000000000000000000000000001/users/9a25c19b0000000000000000000000aa"
+   },
+   "role": {
+    "id": "r111",
+    "name": "admin"
+   },
+   "scope": {
+    "project": {
+     "id": "p-admin",
+     "name": "admin",
+     "domain": {
+      "id": "default",
+      "name": "Default"
+     }
+    }
+   },
+   "user": {
+    "id": "9a25c19b0000000000000000000000aa",
+    "name": "alice",
+    "domain": {
+     "id": "default",
+     "name": "Default"
+    }
+   }
+  },
+  {
+   "links": {
+    "assignment": "http://ks.example/v3/y",
+    "membership": "http://ks.example/v3/groups/g0000000000000000000000000000001/users/9a25c19b0000000000000000000000aa",
+    "prior_role": "http://ks.example/v3/roles/r111"
+   },
+   "role": {
+    "id": "r222",
+    "name": "manager"
+   },
+   "scope": {
+    "project": {
+     "id": "p-admin",
+     "name": "admin",
+     "domain": {
+      "id": "default",
+      "name": "Default"
+     }
+    }
+   },
+   "user": {
+    "id": "9a25c19b0000000000000000000000aa",
+    "name": "alice",
+    "domain": {
+     "id": "default",
+     "name": "Default"
+    }
+   }
+  },
+  {
+   "links": {
+    "assignment": "http://ks.example/v3/y",
+    "membership": "http://ks.example/v3/groups/g0000000000000000000000000000001/users/9a25c19b0000000000000000000000aa",
+    "prior_role": "http://ks.example/v3/roles/r222"
+   },
+   "role": {
+    "id": "r333",
+    "name": "member"
+   },
+   "scope": {
+    "project": {
+     "id": "p-admin",
+     "name": "admin",
+     "domain": {
+      "id": "default",
+      "name": "Default"
+     }
+    }
+   },
+   "user": {
+    "id": "9a25c19b0000000000000000000000aa",
+    "name": "alice",
+    "domain": {
+     "id": "default",
+     "name": "Default"
+    }
+   }
+  },
+  {
+   "links": {
+    "assignment": "http://ks.example/v3/y",
+    "membership": "http://ks.example/v3/groups/g0000000000000000000000000000001/users/9a25c19b0000000000000000000000aa",
+    "prior_role": "http://ks.example/v3/roles/r333"
+   },
+   "role": {
+    "id": "r444",
+    "name": "reader"
+   },
+   "scope": {
+    "project": {
+     "id": "p-admin",
+     "name": "admin",
+     "domain": {
+      "id": "default",
+      "name": "Default"
+     }
+    }
+   },
+   "user": {
+    "id": "9a25c19b0000000000000000000000aa",
+    "name": "alice",
+    "domain": {
+     "id": "default",
+     "name": "Default"
+    }
+   }
+  },
+  {
+   "links": {
+    "assignment": "http://ks.example/v3/y",
+    "membership": "http://ks.example/v3/groups/g0000000000000000000000000000001/users/9a25c19b0000000000000000000000aa"
+   },
+   "role": {
+    "id": "r111",
+    "name": "admin"
+   },
+   "scope": {
+    "domain": {
+     "id": "default",
+     "name": "Default"
+    }
+   },
+   "user": {
+    "id": "9a25c19b0000000000000000000000aa",
+    "name": "alice",
+    "domain": {
+     "id": "default",
+     "name": "Default"
+    }
+   }
+  },
+  {
+   "links": {
+    "assignment": "http://ks.example/v3/y",
+    "membership": "http://ks.example/v3/groups/g0000000000000000000000000000001/users/9a25c19b0000000000000000000000aa",
+    "prior_role": "http://ks.example/v3/roles/r111"
+   },
+   "role": {
+    "id": "r222",
+    "name": "manager"
+   },
+   "scope": {
+    "domain": {
+     "id": "default",
+     "name": "Default"
+    }
+   },
+   "user": {
+    "id": "9a25c19b0000000000000000000000aa",
+    "name": "alice",
+    "domain": {
+     "id": "default",
+     "name": "Default"
+    }
+   }
+  },
+  {
+   "links": {
+    "assignment": "http://ks.example/v3/y",
+    "membership": "http://ks.example/v3/groups/g0000000000000000000000000000001/users/9a25c19b0000000000000000000000aa",
+    "prior_role": "http://ks.example/v3/roles/r222"
+   },
+   "role": {
+    "id": "r333",
+    "name": "member"
+   },
+   "scope": {
+    "domain": {
+     "id": "default",
+     "name": "Default"
+    }
+   },
+   "user": {
+    "id": "9a25c19b0000000000000000000000aa",
+    "name": "alice",
+    "domain": {
+     "id": "default",
+     "name": "Default"
+    }
+   }
+  },
+  {
+   "links": {
+    "assignment": "http://ks.example/v3/y",
+    "membership": "http://ks.example/v3/groups/g0000000000000000000000000000001/users/9a25c19b0000000000000000000000aa",
+    "prior_role": "http://ks.example/v3/roles/r333"
+   },
+   "role": {
+    "id": "r444",
+    "name": "reader"
+   },
+   "scope": {
+    "domain": {
+     "id": "default",
+     "name": "Default"
+    }
+   },
+   "user": {
+    "id": "9a25c19b0000000000000000000000aa",
+    "name": "alice",
+    "domain": {
+     "id": "default",
+     "name": "Default"
+    }
+   }
+  },
+  {
+   "links": {
+    "assignment": "http://ks.example/v3/y",
+    "membership": "http://ks.example/v3/groups/g0000000000000000000000000000001/users/9a25c19b0000000000000000000000aa"
+   },
+   "role": {
+    "id": "r111",
+    "name": "admin"
+   },
+   "scope": {
+    "domain": {
+     "id": "d-corp",
+     "name": "corp"
+    }
+   },
+   "user": {
+    "id": "9a25c19b0000000000000000000000aa",
+    "name": "alice",
+    "domain": {
+     "id": "default",
+     "name": "Default"
+    }
+   }
+  },
+  {
+   "links": {
+    "assignment": "http://ks.example/v3/y",
+    "membership": "http://ks.example/v3/groups/g0000000000000000000000000000001/users/9a25c19b0000000000000000000000aa",
+    "prior_role": "http://ks.example/v3/roles/r111"
+   },
+   "role": {
+    "id": "r222",
+    "name": "manager"
+   },
+   "scope": {
+    "domain": {
+     "id": "d-corp",
+     "name": "corp"
+    }
+   },
+   "user": {
+    "id": "9a25c19b0000000000000000000000aa",
+    "name": "alice",
+    "domain": {
+     "id": "default",
+     "name": "Default"
+    }
+   }
+  },
+  {
+   "links": {
+    "assignment": "http://ks.example/v3/y",
+    "membership": "http://ks.example/v3/groups/g0000000000000000000000000000001/users/9a25c19b0000000000000000000000aa",
+    "prior_role": "http://ks.example/v3/roles/r222"
+   },
+   "role": {
+    "id": "r333",
+    "name": "member"
+   },
+   "scope": {
+    "domain": {
+     "id": "d-corp",
+     "name": "corp"
+    }
+   },
+   "user": {
+    "id": "9a25c19b0000000000000000000000aa",
+    "name": "alice",
+    "domain": {
+     "id": "default",
+     "name": "Default"
+    }
+   }
+  },
+  {
+   "links": {
+    "assignment": "http://ks.example/v3/y",
+    "membership": "http://ks.example/v3/groups/g0000000000000000000000000000001/users/9a25c19b0000000000000000000000aa",
+    "prior_role": "http://ks.example/v3/roles/r333"
+   },
+   "role": {
+    "id": "r444",
+    "name": "reader"
+   },
+   "scope": {
+    "domain": {
+     "id": "d-corp",
+     "name": "corp"
+    }
+   },
+   "user": {
+    "id": "9a25c19b0000000000000000000000aa",
+    "name": "alice",
+    "domain": {
+     "id": "default",
+     "name": "Default"
+    }
+   }
+  },
+  {
+   "links": {
+    "assignment": "http://ks.example/v3/x"
+   },
+   "role": {
+    "id": "r222",
+    "name": "manager"
+   },
+   "scope": {
+    "project": {
+     "id": "p-web",
+     "name": "web",
+     "domain": {
+      "id": "d-corp",
+      "name": "corp"
+     }
+    }
+   },
+   "user": {
+    "id": "9a25c19b0000000000000000000000aa",
+    "name": "alice",
+    "domain": {
+     "id": "default",
+     "name": "Default"
+    }
+   }
+  },
+  {
+   "links": {
+    "assignment": "http://ks.example/v3/x",
+    "prior_role": "http://ks.example/v3/roles/r222"
+   },
+   "role": {
+    "id": "r333",
+    "name": "member"
+   },
+   "scope": {
+    "project": {
+     "id": "p-web",
+     "name": "web",
+     "domain": {
+      "id": "d-corp",
+      "name": "corp"
+     }
+    }
+   },
+   "user": {
+    "id": "9a25c19b0000000000000000000000aa",
+    "name": "alice",
+    "domain": {
+     "id": "default",
+     "name": "Default"
+    }
+   }
+  },
+  {
+   "links": {
+    "assignment": "http://ks.example/v3/x",
+    "prior_role": "http://ks.example/v3/roles/r333"
+   },
+   "role": {
+    "id": "r444",
+    "name": "reader"
+   },
+   "scope": {
+    "project": {
+     "id": "p-web",
+     "name": "web",
+     "domain": {
+      "id": "d-corp",
+      "name": "corp"
+     }
+    }
+   },
+   "user": {
+    "id": "9a25c19b0000000000000000000000aa",
+    "name": "alice",
+    "domain": {
+     "id": "default",
+     "name": "Default"
+    }
+   }
+  },
+  {
+   "links": {
+    "assignment": "http://ks.example/v3/x"
+   },
+   "role": {
+    "id": "r444",
+    "name": "reader"
+   },
+   "scope": {
+    "project": {
+     "id": "p-demo",
+     "name": "demo",
+     "domain": {
+      "id": "default",
+      "name": "Default"
+     }
+    }
+   },
+   "user": {
+    "id": "9a25c19b0000000000000000000000aa",
+    "name": "alice",
+    "domain": {
+     "id": "default",
+     "name": "Default"
+    }
+   }
+  }
+ ],
+ "links": {
+  "self": "http://ks.example/v3/role_assignments?effective&include_names",
+  "previous": null,
+  "next": null
+ }
+}

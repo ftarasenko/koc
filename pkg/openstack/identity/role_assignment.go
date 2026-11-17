@@ -3,6 +3,8 @@ package identity
 import (
 	"context"
 	"fmt"
+	"net/url"
+	"strings"
 
 	"github.com/gophercloud/gophercloud/v2"
 	"github.com/gophercloud/gophercloud/v2/openstack/identity/v3/roles"
@@ -33,6 +35,40 @@ type assignmentExtra struct {
 
 // ListRoleAssignments lists the role assignments opts selects.
 func ListRoleAssignments(ctx context.Context, c *gophercloud.ServiceClient, opts roles.ListAssignmentsOpts) ([]RoleAssignment, error) {
+	return listAll(ctx, roles.ListAssignments(c, opts), extractRoleAssignments, "listing role assignments")
+}
+
+// inheritedToQuery is keystone's filter on the OS-INHERIT marker of an assignment.
+const inheritedToQuery = "scope.OS-INHERIT:inherited_to"
+
+// ListRoleAssignmentsOpts is roles.ListAssignmentsOpts plus the one filter
+// gophercloud lacks: only assignments inherited by the projects of a domain
+// or project subtree (InheritedTo "projects").
+type ListRoleAssignmentsOpts struct {
+	roles.ListAssignmentsOpts
+	// InheritedTo selects inherited assignments; the only value keystone
+	// knows is "projects". Empty adds no filter.
+	InheritedTo string
+}
+
+// ToRolesListAssignmentsQuery formats the options as a query string.
+func (o ListRoleAssignmentsOpts) ToRolesListAssignmentsQuery() (string, error) {
+	q, err := o.ListAssignmentsOpts.ToRolesListAssignmentsQuery()
+	if err != nil || o.InheritedTo == "" {
+		return q, err
+	}
+	vals, err := url.ParseQuery(strings.TrimPrefix(q, "?"))
+	if err != nil {
+		return "", err
+	}
+	vals.Set(inheritedToQuery, o.InheritedTo)
+	return "?" + vals.Encode(), nil
+}
+
+// ListRoleAssignmentsFiltered lists the role assignments opts selects,
+// including the inherited filter. Set Effective for the expanded view:
+// group memberships and implied roles resolved into per-user rows.
+func ListRoleAssignmentsFiltered(ctx context.Context, c *gophercloud.ServiceClient, opts ListRoleAssignmentsOpts) ([]RoleAssignment, error) {
 	return listAll(ctx, roles.ListAssignments(c, opts), extractRoleAssignments, "listing role assignments")
 }
 

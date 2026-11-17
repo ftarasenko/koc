@@ -9,7 +9,7 @@ go 1.26.0
 
 require (
 	github.com/ftarasenko/koc v0.0.0
-	github.com/gophercloud/gophercloud/v2 v2.15.0
+	github.com/gophercloud/gophercloud/v2 v2.16.0
 )
 
 require gopkg.in/yaml.v2 v2.4.0 // indirect

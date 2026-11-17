@@ -332,6 +332,9 @@ type assignmentListFlags struct {
 	groupDomain string
 	roleDomain  string
 	names       bool
+	effective   bool
+	inherited   bool
+	subtree     bool
 }
 
 func newRoleAssignmentListCommand(a *auth.Options, o *output.Options) *cobra.Command {
@@ -363,6 +366,9 @@ func newRoleAssignmentListCommand(a *auth.Options, o *output.Options) *cobra.Com
 	fl.StringVar(&f.groupDomain, "group-domain", "", "domain owning --group (name or ID)")
 	fl.StringVar(&f.roleDomain, "role-domain", "", "domain owning --role (name or ID)")
 	fl.BoolVar(&f.names, "names", false, "display names instead of IDs (requires keystone 3.6+)")
+	fl.BoolVar(&f.effective, "effective", false, "expand group memberships and implied roles into per-user assignments")
+	fl.BoolVar(&f.inherited, "inherited", false, "only assignments inherited by the projects below a domain or project")
+	fl.BoolVar(&f.subtree, "include-subtree", false, "include assignments on the projects below --project (or in --domain); requires keystone 3.6+")
 	return cmd
 }
 
@@ -371,7 +377,7 @@ func runRoleAssignmentList(ctx context.Context, client *gophercloud.ServiceClien
 	if err != nil {
 		return err
 	}
-	all, err := identityapi.ListRoleAssignments(ctx, client, opts)
+	all, err := identityapi.ListRoleAssignmentsFiltered(ctx, client, opts)
 	if err != nil {
 		return err
 	}
@@ -405,8 +411,8 @@ func runRoleAssignmentList(ctx context.Context, client *gophercloud.ServiceClien
 
 // assignmentListOpts resolves the filters of "role assignment list" into the
 // query keystone takes.
-func assignmentListOpts(ctx context.Context, client *gophercloud.ServiceClient, f *assignmentListFlags) (roles.ListAssignmentsOpts, error) {
-	var opts roles.ListAssignmentsOpts
+func assignmentListOpts(ctx context.Context, client *gophercloud.ServiceClient, f *assignmentListFlags) (identityapi.ListRoleAssignmentsOpts, error) {
+	var opts identityapi.ListRoleAssignmentsOpts
 	system, err := systemScope(f.system)
 	if err != nil {
 		return opts, err
@@ -414,6 +420,11 @@ func assignmentListOpts(ctx context.Context, client *gophercloud.ServiceClient, 
 	// Keystone rejects a scope that carries more than one target.
 	if countSet(f.project != "", f.domain != "", system) > 1 {
 		return opts, fmt.Errorf("--project, --domain and --system are mutually exclusive for role assignment scope")
+	}
+	// Keystone answers an effective listing filtered by group with an error: a
+	// group's members are what --effective expands, so filter by --user instead.
+	if f.effective && f.group != "" {
+		return opts, fmt.Errorf("--effective cannot be combined with --group (the expansion is per user; filter by --user)")
 	}
 	if system {
 		opts.ScopeSystem = systemAll
@@ -451,6 +462,15 @@ func assignmentListOpts(ctx context.Context, client *gophercloud.ServiceClient, 
 	}
 	if f.names {
 		opts.IncludeNames = &f.names
+	}
+	if f.effective {
+		opts.Effective = &f.effective
+	}
+	if f.subtree {
+		opts.IncludeSubtree = &f.subtree
+	}
+	if f.inherited {
+		opts.InheritedTo = "projects"
 	}
 	return opts, nil
 }

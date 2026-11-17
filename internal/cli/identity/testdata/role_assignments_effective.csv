@@ -1,0 +1,17 @@
+Role,User,Group,Project,Domain,System,Inherited
+admin,alice@Default,,admin@Default,,,false
+manager,alice@Default,,admin@Default,,,false
+member,alice@Default,,admin@Default,,,false
+reader,alice@Default,,admin@Default,,,false
+admin,alice@Default,,,Default,,false
+manager,alice@Default,,,Default,,false
+member,alice@Default,,,Default,,false
+reader,alice@Default,,,Default,,false
+admin,alice@Default,,,corp,,false
+manager,alice@Default,,,corp,,false
+member,alice@Default,,,corp,,false
+reader,alice@Default,,,corp,,false
+manager,alice@Default,,web@corp,,,false
+member,alice@Default,,web@corp,,,false
+reader,alice@Default,,web@corp,,,false
+reader,alice@Default,,demo@Default,,,false

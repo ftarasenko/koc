@@ -205,3 +205,31 @@ func TestCreateRole_DuplicateIsDetectable(t *testing.T) {
 		t.Errorf("err = %v, want a detectable 409", err)
 	}
 }
+
+func TestListRoleAssignmentsFiltered_EffectiveAndInherited(t *testing.T) {
+	k, sc := newKeystone(t, map[string]func(*http.Request) (int, string){
+		"GET /role_assignments": ok(`{"role_assignments":[
+		  {"role":{"id":"r1","name":"member"},"user":{"id":"u1","name":"alice"},
+		   "scope":{"domain":{"id":"d1","name":"corp"},"OS-INHERIT:inherited_to":"projects"},
+		   "links":{"assignment":"x","membership":"y"}}],"links":{"next":null}}`),
+	})
+	yes := true
+	all, err := identity.ListRoleAssignmentsFiltered(context.Background(), sc, identity.ListRoleAssignmentsOpts{
+		ListAssignmentsOpts: roles.ListAssignmentsOpts{UserID: "u1", Effective: &yes, IncludeNames: &yes},
+		InheritedTo:         "projects",
+	})
+	if err != nil || len(all) != 1 || all[0].InheritedTo != "projects" || all[0].Scope.Domain.ID != "d1" {
+		t.Fatalf("ListRoleAssignmentsFiltered = %+v, %v", all, err)
+	}
+	want := "effective=true&include_names=true&scope.OS-INHERIT%3Ainherited_to=projects&user.id=u1"
+	if got := k.only(t); got.Query != want {
+		t.Errorf("query = %q, want %q", got.Query, want)
+	}
+	// No InheritedTo: the query is exactly gophercloud's.
+	if _, err := identity.ListRoleAssignmentsFiltered(context.Background(), sc, identity.ListRoleAssignmentsOpts{}); err != nil {
+		t.Fatal(err)
+	}
+	if got := k.only(t); got.Query != "" {
+		t.Errorf("empty opts query = %q", got.Query)
+	}
+}

@@ -73,7 +73,22 @@ func TestBGPDynamicRouting(t *testing.T) {
 	if len(agents) > 0 {
 		ag := field(agents[0], "id")
 		r.run(t, "bgp", "dragent", "remove", "speaker", ag, spID) // it may be scheduled already
-		r.ok(t, "bgp", "dragent", "add", "speaker", ag, spID)
+		if res := r.run(t, "bgp", "dragent", "add", "speaker", ag, spID); res.code != 0 {
+			// neutron-dynamic-routing writes this binding outside neutron's
+			// DB retry, and ChanceScheduler binds the same new speaker on its
+			// own (on create and on the agent's resync). When the two collide,
+			// MySQL reports a deadlock and the API returns a 500 even though
+			// the request was sound (epoxy nightly, 2026-11-24). Accept the
+			// scheduler's binding, or try once more.
+			if !strings.Contains(res.stderr, "HTTP 500") {
+				t.Fatalf("koc bgp dragent add speaker: exit %d\nstderr: %s", res.code, res.stderr)
+			}
+			t.Logf("bgp dragent add speaker: server-side 500, retrying: %s", strings.TrimSpace(res.stderr))
+			time.Sleep(2 * time.Second)
+			if !in(r.list(t, "bgp", "dragent", "list", "--bgp-speaker", spID), ag) {
+				r.ok(t, "bgp", "dragent", "add", "speaker", ag, spID)
+			}
+		}
 		if !in(r.list(t, "bgp", "dragent", "list", "--bgp-speaker", spID), ag) {
 			t.Errorf("bgp dragent list --bgp-speaker does not list %s", ag)
 		}
